@@ -1,0 +1,29 @@
+# Build Artifacts
+build/
+bin/
+obj/
+
+# Executables
+ChessEngine
+*.out
+
+# CMake Articfacts (in case I run cmake in root folder)
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+
+# VScode specific settings
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# Swap files for vim
+*.swp
+*.swo
+netrw_hist
+
