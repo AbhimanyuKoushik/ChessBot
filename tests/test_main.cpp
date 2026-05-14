@@ -1,7 +1,5 @@
 #include <iostream>
-
-bool test_pawn_generation() { return true; }
-bool test_knight_generation() { return true; }
+#include <test_utils.hpp>
 
 int main(int argc, char* argv[]) {
   // If no strings are passed, we run everything

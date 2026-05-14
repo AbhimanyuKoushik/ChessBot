@@ -18,7 +18,7 @@ else()
     add_compile_options(-Wall -Wextra -Werror -O3 -march=native)
 endif()
 
-# Search the src folder and subfolders for the cpp files
+# Search the src, tests folder and subfolders for the cpp files
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
 # Keeping the binary file in build/bin folder instead of build folder
@@ -33,8 +33,11 @@ target_include_directories(ChessEngine PUBLIC include)
 # Enabling cmake's internal testing
 enable_testing()
 
+# Find all the cpp files in the tests directory
+file(GLOB_RECURSE TEST_SOURCES "tests/*.cpp")
+
 # We will create a separate executable for testing called test_main.cpp
-add_executable(EngineTests tests/test_main.cpp ${SOURCES})
+add_executable(EngineTests tests/test_main.cpp ${SOURCES} ${TEST_SOURCES})
 
 # Tell test excutable where the headers are
 target_include_directories(EngineTests PUBLIC include)
