@@ -30,4 +30,15 @@ add_executable(ChessEngine apps/main.cpp ${SOURCES})
 # To include all the header files
 target_include_directories(ChessEngine PUBLIC include)
 
+# Enabling cmake's internal testing
+enable_testing()
 
+# We will create a separate executable for testing called test_main.cpp
+add_executable(EngineTests tests/test_main.cpp ${SOURCES})
+
+# Tell test excutable where the headers are
+target_include_directories(EngineTests PUBLIC include)
+
+# Register the executable with Ctest
+add_test(NAME "MoveGen_Pawns" COMMAND EngineTests pawns)
+add_test(NAME "MoveGen_Knights" COMMAND EngineTests knights)

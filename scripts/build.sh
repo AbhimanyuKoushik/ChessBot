@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Getting the build, defaulting to Release mode
+BUILD_TYPE=${1:-Release}
+echo "Building in $BUILD_TYPE mode.." 
+
 # Making sure that script runs from the project root folder
 cd "$(dirname "$0")/.."
 
@@ -15,7 +19,7 @@ cd build
 # -DCMAKE as and so on is required generating the compile_commands file
 # Build type = release sets the compiler optimization properly (removing assert statements and stuff)
 # Build type = debug sets off the compiler optimization and flags to -g and -O0 for debugginh
-cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release ..
+cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
 
 # Compile the code using all the available cores
 make -j$(nproc)
