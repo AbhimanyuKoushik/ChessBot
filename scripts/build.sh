@@ -27,4 +27,4 @@ make -j$(nproc)
 # Copy it to the project root folder so that VS code will know it
 cp compile_commands.json ..
 
-echo "Build Successful: run with ./build/bin/ChessEngine"
+echo "Build Successful."

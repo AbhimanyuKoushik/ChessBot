@@ -37,11 +37,10 @@ enable_testing()
 file(GLOB_RECURSE TEST_SOURCES "tests/*.cpp")
 
 # We will create a separate executable for testing called test_main.cpp
-add_executable(EngineTests tests/test_main.cpp ${SOURCES} ${TEST_SOURCES})
+add_executable(EngineTests ${SOURCES} ${TEST_SOURCES})
 
 # Tell test excutable where the headers are
 target_include_directories(EngineTests PUBLIC include)
 
 # Register the executable with Ctest
-add_test(NAME "MoveGen_Pawns" COMMAND EngineTests pawns)
-add_test(NAME "MoveGen_Knights" COMMAND EngineTests knights)
+add_test(NAME "Bitboard_Test" COMMAND EngineTests bitboard)

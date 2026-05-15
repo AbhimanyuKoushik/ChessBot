@@ -7,17 +7,9 @@ int main(int argc, char* argv[]) {
   int failed_tests = 0;
 
   // Test for pawns
-  if (target == "all" || target == "pawns") {
-    if (!test_pawn_generation()) {
-      std::cout << "[FAIL] Pawn Generation!\n";
-      failed_tests++;
-    }
-  }
-
-  // Test for knight
-  if (target == "all" || target == "knights") {
-    if (!test_knight_generation()) {
-      std::cout << "[FAIL] Knight Generation!\n";
+  if (target == "all" || target == "bitboard") {
+    if (!test_bitboard()) {
+      std::cout << "[FAIL] Bitboard!\n";
       failed_tests++;
     }
   }
