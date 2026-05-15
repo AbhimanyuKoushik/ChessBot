@@ -6,10 +6,18 @@ int main(int argc, char* argv[]) {
   std::string target = (argc > 1) ? argv[1] : "all";
   int failed_tests = 0;
 
-  // Test for pawns
+  // Test for bitboard utilities
   if (target == "all" || target == "bitboard") {
     if (!test_bitboard()) {
       std::cout << "[FAIL] Bitboard!\n";
+      failed_tests++;
+    }
+  }
+
+  // Test for pawn, knight and king attack generation
+  if (target == "all" || target == "leaper_attack_gen") {
+    if (!test_leaper_attack_gen()) {
+      std::cout << "[FAIL] Leaper Attack Generation!\n";
       failed_tests++;
     }
   }

@@ -44,3 +44,4 @@ target_include_directories(EngineTests PUBLIC include)
 
 # Register the executable with Ctest
 add_test(NAME "Bitboard_Test" COMMAND EngineTests bitboard)
+add_test(NAME "Leaper_Attack_Gen" COMMAND EngineTests leaper_attack_gen)

@@ -44,3 +44,9 @@ inline void print_bitboard(const Bitboard& board) {
   std::cout << '\n' << "    a b c d e f g h" << '\n';
   std::cout << "Bitboard: " << board << "\n\n";
 }
+
+// k infront tells that its a global constant, no change needed
+inline constexpr Bitboard kNotAFile = 0xFEFEFEFEFEFEFEFEULL;
+inline constexpr Bitboard kNotHFile = 0x7F7F7F7F7F7F7F7FULL;
+inline constexpr Bitboard kNotGHFile = 0x3F3F3F3F3F3F3F3FULL;
+inline constexpr Bitboard kNotABFile = 0xFCFCFCFCFCFCFCFCULL;
