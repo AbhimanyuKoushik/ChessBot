@@ -6,10 +6,10 @@
 bool test_leaper_attack_gen() {
   Bitboard white_pawn_attack, black_pawn_attack, knight_attack, king_attack;
 
-  white_pawn_attack = mask_pawn_attacks(WHITE, D4);
-  black_pawn_attack = mask_pawn_attacks(BLACK, D4);
-  knight_attack = mask_knight_attacks(D4);
-  king_attack = mask_king_attacks(D4);
+  white_pawn_attack = kPawnAttacks[WHITE][D4];
+  black_pawn_attack = kPawnAttacks[BLACK][D4];
+  knight_attack = kKnightAttacks[D4];
+  king_attack = kKingAttacks[D4];
 
   if (white_pawn_attack != 335544320ULL) {
     std::cout << "Failed when White Pawn is on D4.\n";
@@ -28,10 +28,10 @@ bool test_leaper_attack_gen() {
     return false;
   }
 
-  white_pawn_attack = mask_pawn_attacks(WHITE, A5);
-  black_pawn_attack = mask_pawn_attacks(BLACK, A5);
-  knight_attack = mask_knight_attacks(A5);
-  king_attack = mask_king_attacks(A5);
+  white_pawn_attack = kPawnAttacks[WHITE][A5];
+  black_pawn_attack = kPawnAttacks[BLACK][A5];
+  knight_attack = kKnightAttacks[A5];
+  king_attack = kKingAttacks[A5];
 
   if (white_pawn_attack != 131072ULL) {
     std::cout << "Failed when White Pawn is on A5.\n";
@@ -50,10 +50,10 @@ bool test_leaper_attack_gen() {
     return false;
   }
 
-  white_pawn_attack = mask_pawn_attacks(WHITE, H8);
-  black_pawn_attack = mask_pawn_attacks(BLACK, H8);
-  knight_attack = mask_knight_attacks(H8);
-  king_attack = mask_king_attacks(H8);
+  white_pawn_attack = kPawnAttacks[WHITE][H8];
+  black_pawn_attack = kPawnAttacks[BLACK][H8];
+  knight_attack = kKnightAttacks[H8];
+  king_attack = kKingAttacks[H8];
 
   if (white_pawn_attack != 0ULL) {
     std::cout << "Failed when White Pawn is on H8.\n";
