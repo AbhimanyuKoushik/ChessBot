@@ -128,3 +128,73 @@ constexpr Bitboard bishop_occupancy_mask(Square sq) {
 
   return occupancy_mask;
 }
+
+constexpr Bitboard rook_attack_gen(Bitboard occupied_squares, Square sq) {
+  Square attack_sq;
+  int rank, file;
+  Bitboard attack_mask = 0ULL;
+
+  rank = (sq / 8);
+  file = (sq % 8);
+
+  for (int i = rank + 1; i <= 7; i++) {
+    attack_sq = static_cast<Square>(i * 8 + file);
+    set_bit(attack_mask, attack_sq);
+    if (get_bit(occupied_squares, attack_sq)) break;
+  }
+
+  for (int i = rank - 1; i >= 0; i--) {
+    attack_sq = static_cast<Square>(i * 8 + file);
+    set_bit(attack_mask, attack_sq);
+    if (get_bit(occupied_squares, attack_sq)) break;
+  }
+
+  for (int i = file - 1; i >= 0; i--) {
+    attack_sq = static_cast<Square>(rank * 8 + i);
+    set_bit(attack_mask, attack_sq);
+    if (get_bit(occupied_squares, attack_sq)) break;
+  }
+
+  for (int i = file + 1; i <= 7; i++) {
+    attack_sq = static_cast<Square>(rank * 8 + i);
+    set_bit(attack_mask, attack_sq);
+    if (get_bit(occupied_squares, attack_sq)) break;
+  }
+
+  return attack_mask;
+}
+
+constexpr Bitboard bishop_attack_gen(Bitboard occupied_squares, Square sq) {
+  Square attack_sq;
+  int rank, file;
+  Bitboard attack_mask = 0ULL;
+
+  rank = (sq / 8);
+  file = (sq % 8);
+
+  for (int i = 1; (rank - i >= 0) && (file - i >= 0); i++) {
+    attack_sq = static_cast<Square>((rank - i) * 8 + (file - i));
+    set_bit(attack_mask, attack_sq);
+    if (get_bit(occupied_squares, attack_sq)) break;
+  }
+
+  for (int i = 1; (rank + i <= 7) && (file + i <= 7); i++) {
+    attack_sq = static_cast<Square>((rank + i) * 8 + (file + i));
+    set_bit(attack_mask, attack_sq);
+    if (get_bit(occupied_squares, attack_sq)) break;
+  }
+
+  for (int i = 1; (rank - i >= 0) && (file + i <= 7); i++) {
+    attack_sq = static_cast<Square>((rank - i) * 8 + (file + i));
+    set_bit(attack_mask, attack_sq);
+    if (get_bit(occupied_squares, attack_sq)) break;
+  }
+
+  for (int i = 1; (rank + i <= 7) && (file - i >= 0); i++) {
+    attack_sq = static_cast<Square>((rank + i) * 8 + (file - i));
+    set_bit(attack_mask, attack_sq);
+    if (get_bit(occupied_squares, attack_sq)) break;
+  }
+
+  return attack_mask;
+}
