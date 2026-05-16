@@ -13,9 +13,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Adding optimization and warning flags
 # If the user is compiling on windows then MSVC is on and the compilation flags change
 if(MSVC)
-    add_compile_options(/W4 /WX /O2)
+    add_compile_options(/W4 /WX /O2 /constexpr:steps1000000000)
 else()
-    add_compile_options(-Wall -Wextra -Werror -O3 -march=native)
+    add_compile_options(-Wall -Wextra -Werror -O3 -march=native -fconstexpr-ops-limit=1000000000)
 endif()
 
 # Search the src, tests folder and subfolders for the cpp files
