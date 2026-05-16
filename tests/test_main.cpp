@@ -22,6 +22,13 @@ int main(int argc, char* argv[]) {
     }
   }
 
+  if (target == "all" || target == "slider_attack_gen") {
+    if (!test_slider_attack_gen()) {
+      std::cout << "[FAIL] Slider Attack Generation!\n";
+      failed_tests++;
+    }
+  }
+
   if (failed_tests == 0)
     return 0;
   else
