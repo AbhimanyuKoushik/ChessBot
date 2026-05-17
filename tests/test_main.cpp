@@ -29,6 +29,13 @@ int main(int argc, char* argv[]) {
     }
   }
 
+  if (target == "all" || target == "movedef") {
+    if (!test_movedef()) {
+      std::cout << "[FAIL] Move definition!\n";
+      failed_tests++;
+    }
+  }
+
   if (failed_tests == 0)
     return 0;
   else

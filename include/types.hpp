@@ -9,11 +9,13 @@ and stuff So to be clear when we are using bitboard we use an alias
 using Bitboard = uint64_t;
 
 /*
-The idea is that, there will be 8 bitboards. All white pieces, all black pieces,
-all pawns, all knights, and so on. If we want the location of black knights, we
-can just do knight bitboard & black bitboard. Instead of putting some random
-number it will clear while getting indices, hence these enums.
+We need 15 bitboards later on to store stuff, for each piece of each color,
+white occupancies, black occupancies and both occupancies
+We need enums for both piece type and piece because
+piece type will be used for move encoding, PSTs and evaluation while
+piece will be use for the bitboards
 */
+
 // NB means number of
 enum Color : uint8_t { WHITE, BLACK, NB_COLOR = 2 };
 
@@ -28,6 +30,12 @@ enum PieceType : uint8_t {
 };
 
 // clang-format off
+enum Piece : uint8_t {
+  W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
+  B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
+  NB_PIECES = 12
+};
+
 enum Square : uint8_t {
   A8, B8, C8, D8, E8, F8, G8, H8,
   A7, B7, C7, D7, E7, F7, G7, H7,
