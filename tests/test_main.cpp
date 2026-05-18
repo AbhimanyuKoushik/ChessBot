@@ -36,6 +36,10 @@ int main(int argc, char* argv[]) {
     }
   }
 
+  if (target == "board") {
+    test_board();
+  }
+
   if (failed_tests == 0)
     return 0;
   else

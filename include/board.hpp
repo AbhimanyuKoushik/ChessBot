@@ -570,7 +570,7 @@ class Board {
 
     // If square in which king is present is attacked then it means our previous
     // move is illegal
-    return is_square_attacked(king_sq);
+    return !(is_square_attacked(king_sq));
   }
 
   // The idea is that, instead of checking each piece if its attacked or not, we
@@ -600,7 +600,7 @@ class Board {
     }
 
     Bitboard attacker_pawn_bb, attacker_knight_bb, attacker_bishop_bb,
-        attacker_rook_bb, attacker_queen_bb, attacker_king_bb;
+        attacker_rook_bb, attacker_king_bb;
 
     Color opposite_side = (currentSideToMove == WHITE ? BLACK : WHITE);
     attacker_pawn_bb = kPawnAttacks[opposite_side][sq];

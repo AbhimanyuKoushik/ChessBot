@@ -1,4 +1,3 @@
-#include <bitboards.hpp>
 #include <board.hpp>
 #include <iostream>
 #include <types.hpp>
@@ -43,10 +42,13 @@ void Board::InitializeBoard() {
   StateInfo emptyInfo = {NB_PIECES, NB_SQ, 0, 0};
   stateHistory.fill(emptyInfo);
 }
+
+// clang-format off
 inline constexpr std::array<const char*, 12> unicode_pieces = {
-    "♙", "♘", "♗", "♖", "♕", "♔",  // White
-    "♟︎", "♞", "♝", "♜", "♛", "♚"   // Black
+    "♟︎", "♞", "♝", "♜", "♛", "♚",  // White
+    "♙", "♘", "♗", "♖", "♕", "♔"   // Black
 };
+// clang-format on
 
 void Board::printBoard() {
   std::cout << "\n";
@@ -92,7 +94,9 @@ void Board::printBoard() {
   std::cout << ((currentCastlingRights & 2) ? "Q" : "-");
   std::cout << ((currentCastlingRights & 4) ? "k" : "-");
   std::cout << ((currentCastlingRights & 8) ? "q" : "-");
-  std::cout << "\n\n";
+  std::cout << "\n";
+  std::cout << "The position is " << ((is_position_legal()) ? "" : "not ")
+            << "legal.\n\n";
 }
 
-void Board::LoadFEN(std::string fenString) {}
+void Board::LoadFEN(std::string fenString) { std::cout << fenString << '\n'; }

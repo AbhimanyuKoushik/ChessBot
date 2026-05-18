@@ -368,7 +368,7 @@ inline constexpr std::array<std::array<Bitboard, 512>, 64> kBishopAttackTable =
 // For getting the final attack mask
 // #########################################
 
-Bitboard RookAttacks(Bitboard full_occupancies, Square sq) {
+inline Bitboard RookAttacks(Bitboard full_occupancies, Square sq) {
   Bitboard rook_occupancy = full_occupancies & kRookOccupancyTable[sq];
   int hash_index = (rook_occupancy * rook_magic_numbers[sq]) >>
                    (64 - nb_squares_rook_moves[sq]);
@@ -376,7 +376,7 @@ Bitboard RookAttacks(Bitboard full_occupancies, Square sq) {
   return kRookAttackTable[sq][hash_index];
 }
 
-Bitboard BishopAttacks(Bitboard full_occupancies, Square sq) {
+inline Bitboard BishopAttacks(Bitboard full_occupancies, Square sq) {
   Bitboard bishop_occupancy = full_occupancies & kBishopOccupancyTable[sq];
   int hash_index = (bishop_occupancy * bishop_magic_numbers[sq]) >>
                    (64 - nb_squares_bishop_moves[sq]);
@@ -384,7 +384,7 @@ Bitboard BishopAttacks(Bitboard full_occupancies, Square sq) {
   return kBishopAttackTable[sq][hash_index];
 }
 
-Bitboard QueenAttacks(Bitboard full_occupancies, Square sq) {
+inline Bitboard QueenAttacks(Bitboard full_occupancies, Square sq) {
   return (RookAttacks(full_occupancies, sq) |
           BishopAttacks(full_occupancies, sq));
 }
