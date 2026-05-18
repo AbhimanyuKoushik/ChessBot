@@ -306,7 +306,251 @@ class Board {
     currentSideToMove = (currentSideToMove == WHITE) ? BLACK : WHITE;
   }
 
-  inline void undo_move() {}
+  // Have to input move in undo move, otherwise have to store in StateInfo
+  // struct, which basically doubles the struct size
+  inline void undo_move(Move mv) {
+    currentPly--;
+    // currentSide to move is set to the previous side to move
+    currentSideToMove = (currentSideToMove == WHITE) ? BLACK : WHITE;
+    Color opposite_side = (currentSideToMove == WHITE) ? BLACK : WHITE;
+
+    StateInfo previousState = stateHistory[currentPly];
+    Piece captured_piece = previousState.capturedPiece;
+    currentEnpassentSquare = previousState.enpassentSquare;
+    currentCastlingRights = previousState.castlingRights;
+    currentHalfmoveClock = previousState.halfmoveClock;
+
+    Square previous_source_sq = get_move_source_sq(mv);
+    Square previous_target_sq = get_move_target_sq(mv);
+    MoveFlag previous_flag = get_move_flag(mv);
+    Piece moved_piece = pieceOnSquare[previous_target_sq];
+
+    pieceOnSquare[previous_target_sq] = captured_piece;
+    pieceOnSquare[previous_source_sq] = moved_piece;
+
+    // Reversing the flag specific updates
+    switch (previous_flag) {
+      case CAPTURE: {
+        Bitboard prev_capture_mask = (1ULL << previous_target_sq);
+        pieceBitboards[captured_piece] ^= prev_capture_mask;
+        sideOccupancies[opposite_side] ^= prev_capture_mask;
+        break;
+      }
+
+      case KING_CASTLE: {
+        Bitboard prev_castle_mask;
+        if (currentSideToMove == WHITE) {
+          prev_castle_mask = (1ULL << H1) | (1ULL << F1);
+          pieceBitboards[W_ROOK] ^= prev_castle_mask;
+          sideOccupancies[WHITE] ^= prev_castle_mask;
+          pieceOnSquare[H1] = W_ROOK;
+          pieceOnSquare[F1] = NB_PIECES;
+        } else {
+          prev_castle_mask = (1ULL << H8) | (1ULL << F8);
+          pieceBitboards[B_ROOK] ^= prev_castle_mask;
+          sideOccupancies[BLACK] ^= prev_castle_mask;
+          pieceOnSquare[H8] = B_ROOK;
+          pieceOnSquare[F8] = NB_PIECES;
+        }
+        break;
+      }
+
+      case QUEEN_CASTLE: {
+        Bitboard prev_castle_mask;
+        if (currentSideToMove == WHITE) {
+          prev_castle_mask = (1ULL << A1) | (1ULL << D1);
+          pieceBitboards[W_ROOK] ^= prev_castle_mask;
+          sideOccupancies[WHITE] ^= prev_castle_mask;
+          pieceOnSquare[A1] = W_ROOK;
+          pieceOnSquare[D1] = NB_PIECES;
+        } else {
+          prev_castle_mask = (1ULL << A8) | (1ULL << D8);
+          pieceBitboards[B_ROOK] ^= prev_castle_mask;
+          sideOccupancies[BLACK] ^= prev_castle_mask;
+          pieceOnSquare[A8] = B_ROOK;
+          pieceOnSquare[D8] = NB_PIECES;
+        }
+        break;
+      }
+
+      case ENPASS_CAP: {
+        if (currentSideToMove == WHITE) {
+          Square prev_enpass_cap_sq =
+              static_cast<Square>(previous_target_sq + 8);
+          pieceBitboards[B_PAWN] ^= (1ULL << prev_enpass_cap_sq);
+          sideOccupancies[BLACK] ^= (1ULL << prev_enpass_cap_sq);
+          pieceOnSquare[previous_target_sq] = NB_PIECES;
+          pieceOnSquare[prev_enpass_cap_sq] = B_PAWN;
+        } else {
+          Square prev_enpass_cap_sq =
+              static_cast<Square>(previous_target_sq - 8);
+          pieceBitboards[W_PAWN] ^= (1ULL << prev_enpass_cap_sq);
+          sideOccupancies[WHITE] ^= (1ULL << prev_enpass_cap_sq);
+          pieceOnSquare[previous_target_sq] = NB_PIECES;
+          pieceOnSquare[prev_enpass_cap_sq] = W_PAWN;
+        }
+        break;
+      }
+
+      case QUEEN_PROM: {
+        Bitboard prom_sq_mask = (1ULL << previous_target_sq);
+
+        if (currentSideToMove == WHITE) {
+          pieceOnSquare[previous_source_sq] = W_PAWN;
+          pieceBitboards[W_PAWN] ^= prom_sq_mask;
+          pieceBitboards[W_QUEEN] ^= prom_sq_mask;
+          moved_piece = W_PAWN;
+        } else {
+          pieceOnSquare[previous_source_sq] = B_PAWN;
+          pieceBitboards[B_PAWN] ^= prom_sq_mask;
+          pieceBitboards[B_QUEEN] ^= prom_sq_mask;
+          moved_piece = B_PAWN;
+        }
+        break;
+      }
+
+      case ROOK_PROM: {
+        Bitboard prom_sq_mask = (1ULL << previous_target_sq);
+
+        if (currentSideToMove == WHITE) {
+          pieceOnSquare[previous_source_sq] = W_PAWN;
+          pieceBitboards[W_PAWN] ^= prom_sq_mask;
+          pieceBitboards[W_ROOK] ^= prom_sq_mask;
+          moved_piece = W_PAWN;
+        } else {
+          pieceOnSquare[previous_source_sq] = B_PAWN;
+          pieceBitboards[B_PAWN] ^= prom_sq_mask;
+          pieceBitboards[B_ROOK] ^= prom_sq_mask;
+          moved_piece = B_PAWN;
+        }
+        break;
+      }
+
+      case BISHOP_PROM: {
+        Bitboard prom_sq_mask = (1ULL << previous_target_sq);
+
+        if (currentSideToMove == WHITE) {
+          pieceOnSquare[previous_source_sq] = W_PAWN;
+          pieceBitboards[W_PAWN] ^= prom_sq_mask;
+          pieceBitboards[W_BISHOP] ^= prom_sq_mask;
+          moved_piece = W_PAWN;
+        } else {
+          pieceOnSquare[previous_source_sq] = B_PAWN;
+          pieceBitboards[B_PAWN] ^= prom_sq_mask;
+          pieceBitboards[B_BISHOP] ^= prom_sq_mask;
+          moved_piece = B_PAWN;
+        }
+        break;
+      }
+
+      case KNIGHT_PROM: {
+        Bitboard prom_sq_mask = (1ULL << previous_target_sq);
+
+        if (currentSideToMove == WHITE) {
+          pieceOnSquare[previous_source_sq] = W_PAWN;
+          pieceBitboards[W_PAWN] ^= prom_sq_mask;
+          pieceBitboards[W_KNIGHT] ^= prom_sq_mask;
+          moved_piece = W_PAWN;
+        } else {
+          pieceOnSquare[previous_source_sq] = B_PAWN;
+          pieceBitboards[B_PAWN] ^= prom_sq_mask;
+          pieceBitboards[B_KNIGHT] ^= prom_sq_mask;
+          moved_piece = B_PAWN;
+        }
+        break;
+      }
+
+      case CAP_QUEEN_PROM: {
+        Bitboard prom_sq_mask = (1ULL << previous_target_sq);
+
+        if (currentSideToMove == WHITE) {
+          pieceOnSquare[previous_source_sq] = W_PAWN;
+          pieceBitboards[W_PAWN] ^= prom_sq_mask;
+          pieceBitboards[W_QUEEN] ^= prom_sq_mask;
+          moved_piece = W_PAWN;
+        } else {
+          pieceOnSquare[previous_source_sq] = B_PAWN;
+          pieceBitboards[B_PAWN] ^= prom_sq_mask;
+          pieceBitboards[B_QUEEN] ^= prom_sq_mask;
+          moved_piece = B_PAWN;
+        }
+
+        pieceBitboards[captured_piece] ^= prom_sq_mask;
+        sideOccupancies[opposite_side] ^= prom_sq_mask;
+        break;
+      }
+
+      case CAP_ROOK_PROM: {
+        Bitboard prom_sq_mask = (1ULL << previous_target_sq);
+
+        if (currentSideToMove == WHITE) {
+          pieceOnSquare[previous_source_sq] = W_PAWN;
+          pieceBitboards[W_PAWN] ^= prom_sq_mask;
+          pieceBitboards[W_ROOK] ^= prom_sq_mask;
+          moved_piece = W_PAWN;
+        } else {
+          pieceOnSquare[previous_source_sq] = B_PAWN;
+          pieceBitboards[B_PAWN] ^= prom_sq_mask;
+          pieceBitboards[B_ROOK] ^= prom_sq_mask;
+          moved_piece = B_PAWN;
+        }
+
+        pieceBitboards[captured_piece] ^= prom_sq_mask;
+        sideOccupancies[opposite_side] ^= prom_sq_mask;
+        break;
+      }
+
+      case CAP_BISHOP_PROM: {
+        Bitboard prom_sq_mask = (1ULL << previous_target_sq);
+
+        if (currentSideToMove == WHITE) {
+          pieceOnSquare[previous_source_sq] = W_PAWN;
+          pieceBitboards[W_PAWN] ^= prom_sq_mask;
+          pieceBitboards[W_BISHOP] ^= prom_sq_mask;
+          moved_piece = W_PAWN;
+        } else {
+          pieceOnSquare[previous_source_sq] = B_PAWN;
+          pieceBitboards[B_PAWN] ^= prom_sq_mask;
+          pieceBitboards[B_BISHOP] ^= prom_sq_mask;
+          moved_piece = B_PAWN;
+        }
+
+        pieceBitboards[captured_piece] ^= prom_sq_mask;
+        sideOccupancies[opposite_side] ^= prom_sq_mask;
+        break;
+      }
+
+      case CAP_KNIGHT_PROM: {
+        Bitboard prom_sq_mask = (1ULL << previous_target_sq);
+
+        if (currentSideToMove == WHITE) {
+          pieceOnSquare[previous_source_sq] = W_PAWN;
+          pieceBitboards[W_PAWN] ^= prom_sq_mask;
+          pieceBitboards[W_KNIGHT] ^= prom_sq_mask;
+          moved_piece = W_PAWN;
+        } else {
+          pieceOnSquare[previous_source_sq] = B_PAWN;
+          pieceBitboards[B_PAWN] ^= prom_sq_mask;
+          pieceBitboards[B_KNIGHT] ^= prom_sq_mask;
+          moved_piece = B_PAWN;
+        }
+
+        pieceBitboards[captured_piece] ^= prom_sq_mask;
+        sideOccupancies[opposite_side] ^= prom_sq_mask;
+        break;
+      }
+
+      default:
+        break;
+    }
+
+    // Reversing the common updates
+    Bitboard update_mask =
+        ((1ULL << previous_source_sq) | (1ULL << previous_target_sq));
+    pieceBitboards[moved_piece] ^= update_mask;
+    sideOccupancies[currentSideToMove] ^= update_mask;
+    sideOccupancies[NB_COLOR] = sideOccupancies[WHITE] | sideOccupancies[BLACK];
+  }
 
   inline bool is_move_legal(Move mv) {}
 
