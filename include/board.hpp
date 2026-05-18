@@ -2,7 +2,9 @@
 
 #include <array>
 #include <bitboards.hpp>
+#include <leapers.hpp>
 #include <movedef.hpp>
+#include <sliders.hpp>
 #include <types.hpp>
 
 /*
@@ -552,7 +554,76 @@ class Board {
     sideOccupancies[NB_COLOR] = sideOccupancies[WHITE] | sideOccupancies[BLACK];
   }
 
-  inline bool is_move_legal(Move mv) {}
+  // The question is, is the position legal
+  // You position after the move is made is not legal is same as saying move is
+  // not legal
+  inline bool is_position_legal() {
+    // Since we already made our move, the currentSideToMove will be the
+    // opponent
+    Color us = (currentSideToMove == WHITE) ? BLACK : WHITE;
+
+    Piece our_king = (us == WHITE) ? W_KING : B_KING;
+    // Since there is only one king per side, get_lsb_index gets us the location
+    // of our king
+    Square king_sq =
+        static_cast<Square>(get_lsb_index(pieceBitboards[our_king]));
+
+    // If square in which king is present is attacked then it means our previous
+    // move is illegal
+    return is_square_attacked(king_sq);
+  }
+
+  // The idea is that, instead of checking each piece if its attacked or not, we
+  // will use the idea that for a piece present on square sq1 is attacking a
+  // particular square sq2 then the same on piece on sq2 attacks sq1, so for
+  // example, if we want to check if the rook is attacking sq2, we place a rook
+  // (called attacker) on sq2, get the attacks and & it with rook occupancies,
+  // if its not 0 then sq2 is attacked by rook
+  // This function checks if the currentSideToMove attacks a square or not
+  inline bool is_square_attacked(Square sq) {
+    Piece our_pawn, our_knight, our_bishop, our_rook, our_queen, our_king;
+
+    if (currentSideToMove == WHITE) {
+      our_pawn = W_PAWN;
+      our_knight = W_KNIGHT;
+      our_bishop = W_BISHOP;
+      our_rook = W_ROOK;
+      our_queen = W_QUEEN;
+      our_king = W_KING;
+    } else {
+      our_pawn = B_PAWN;
+      our_knight = B_KNIGHT;
+      our_bishop = B_BISHOP;
+      our_rook = B_ROOK;
+      our_queen = B_QUEEN;
+      our_king = B_KING;
+    }
+
+    Bitboard attacker_pawn_bb, attacker_knight_bb, attacker_bishop_bb,
+        attacker_rook_bb, attacker_queen_bb, attacker_king_bb;
+
+    Color opposite_side = (currentSideToMove == WHITE ? BLACK : WHITE);
+    attacker_pawn_bb = kPawnAttacks[opposite_side][sq];
+    if ((attacker_pawn_bb & pieceBitboards[our_pawn])) return true;
+
+    attacker_knight_bb = kKnightAttacks[sq];
+    if (attacker_knight_bb & pieceBitboards[our_knight]) return true;
+
+    attacker_king_bb = kKingAttacks[sq];
+    if (attacker_king_bb & pieceBitboards[our_king]) return true;
+
+    attacker_bishop_bb = BishopAttacks(sideOccupancies[NB_COLOR], sq);
+    if (attacker_bishop_bb &
+        (pieceBitboards[our_bishop] | pieceBitboards[our_queen]))
+      return true;
+
+    attacker_rook_bb = RookAttacks(sideOccupancies[NB_COLOR], sq);
+    if (attacker_rook_bb &
+        (pieceBitboards[our_rook] | pieceBitboards[our_queen]))
+      return true;
+
+    return false;
+  }
 
   inline Bitboard get_piece_bitboard(Piece p) { return pieceBitboards[p]; }
 
@@ -570,7 +641,7 @@ class Board {
     currentSideToMove = NB_COLOR;
     pieceCapturedPreviously = NB_PIECES;
     currentEnpassentSquare = NB_SQ;
-    currentCastlingRights = 0;
+    currentCastlingRights = 0x0F;
     currentHalfmoveClock = 0;
   }
 
