@@ -515,16 +515,17 @@ inline void Board::undo_move(Move mv) {
 inline bool Board::is_position_legal() {
   // Since we already made our move, the currentSideToMove will be the
   // opponent
-  Color us = (currentSideToMove == WHITE) ? BLACK : WHITE;
+  Color our_side = (currentSideToMove == WHITE) ? BLACK : WHITE;
+  Color opp_side = (our_side == WHITE) ? BLACK : WHITE;
 
-  Piece our_king = (us == WHITE) ? W_KING : B_KING;
+  Piece our_king = (our_side == WHITE) ? W_KING : B_KING;
   // Since there is only one king per side, get_lsb_index gets us the location
   // of our king
   Square king_sq = static_cast<Square>(get_lsb_index(pieceBitboards[our_king]));
 
   // If square in which king is present is attacked then it means our previous
   // move is illegal
-  return !(is_square_attacked(king_sq));
+  return !(is_square_attacked(king_sq, opp_side));
 }
 
 // The idea is that, instead of checking each piece if its attacked or not, we
@@ -533,10 +534,10 @@ inline bool Board::is_position_legal() {
 // example, if we want to check if the rook is attacking sq2, we place a rook
 // (called attacker) on sq2, get the attacks and & it with rook occupancies,
 // if its not 0 then sq2 is attacked by rook
-inline bool Board::is_square_attacked(Square sq) {
+inline bool Board::is_square_attacked(Square sq, Color side) const {
   Piece our_pawn, our_knight, our_bishop, our_rook, our_queen, our_king;
 
-  if (currentSideToMove == WHITE) {
+  if (side == WHITE) {
     our_pawn = W_PAWN;
     our_knight = W_KNIGHT;
     our_bishop = W_BISHOP;
@@ -555,7 +556,7 @@ inline bool Board::is_square_attacked(Square sq) {
   Bitboard attacker_pawn_bb, attacker_knight_bb, attacker_bishop_bb,
       attacker_rook_bb, attacker_king_bb;
 
-  Color opposite_side = (currentSideToMove == WHITE ? BLACK : WHITE);
+  Color opposite_side = (side == WHITE ? BLACK : WHITE);
   attacker_pawn_bb = kPawnAttacks[opposite_side][sq];
   if ((attacker_pawn_bb & pieceBitboards[our_pawn])) return true;
 
@@ -577,11 +578,25 @@ inline bool Board::is_square_attacked(Square sq) {
   return false;
 }
 
-inline Bitboard Board::get_piece_bitboard(Piece p) { return pieceBitboards[p]; }
+inline Bitboard Board::get_piece_bitboard(Piece p) const {
+  return pieceBitboards[p];
+}
 
-inline Piece Board::get_piece_at_square(Square sq) { return pieceOnSquare[sq]; }
+inline Piece Board::get_piece_at_square(Square sq) const {
+  return pieceOnSquare[sq];
+}
 
-inline Color Board::get_side_to_move() { return currentSideToMove; }
+inline Color Board::get_side_to_move() const { return currentSideToMove; }
+
+inline Bitboard Board::get_side_occupancy(Color side) const {
+  return sideOccupancies[side];
+}
+
+inline Square Board::get_enpassent_sq() const { return currentEnpassentSquare; }
+
+inline uint8_t Board::get_castling_rights() const {
+  return currentCastlingRights;
+}
 
 Board::Board() {
   StateInfo emptyInfo = {NB_PIECES, NB_SQ, 0, 0};

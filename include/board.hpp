@@ -51,14 +51,20 @@ class Board {
   // not legal is same as saying move is not legal
   inline bool is_position_legal();
 
-  // This function checks if the currentSideToMove attacks a square or not
-  inline bool is_square_attacked(Square sq);
+  // This function checks if the given side attacks a square or not
+  inline bool is_square_attacked(Square sq, Color side) const;
 
-  inline Bitboard get_piece_bitboard(Piece p);
+  inline Bitboard get_piece_bitboard(Piece p) const;
 
-  inline Piece get_piece_at_square(Square sq);
+  inline Piece get_piece_at_square(Square sq) const;
 
-  inline Color get_side_to_move();
+  inline Color get_side_to_move() const;
+
+  inline Bitboard get_side_occupancy(Color side) const;
+
+  inline Square get_enpassent_sq() const;
+
+  inline uint8_t get_castling_rights() const;
 
   // constructor
   inline Board();
