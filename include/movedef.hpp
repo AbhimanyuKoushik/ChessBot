@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <types.hpp>
 
 using Move = uint16_t;
@@ -30,21 +29,15 @@ enum MoveFlag : uint8_t {
   CAP_KNIGHT_PROM = 13
 };
 
-inline constexpr Square get_move_source_sq(Move mv) {
-  return static_cast<Square>(mv & 0x3F);
-}
+inline constexpr Square get_move_source_sq(Move mv);
 
-inline constexpr Square get_move_target_sq(Move mv) {
-  return static_cast<Square>((mv >> 6) & 0x3F);
-}
+inline constexpr Square get_move_target_sq(Move mv);
 
-inline constexpr MoveFlag get_move_flag(Move mv) {
-  return static_cast<MoveFlag>((mv >> 12) & 0x0F);
-}
+inline constexpr MoveFlag get_move_flag(Move mv);
 
 inline constexpr Move encode_move(Square source_sq, Square target_sq,
-                                  MoveFlag flag) {
-  return static_cast<Move>((flag << 12) | (target_sq << 6) | source_sq);
-}
+                                  MoveFlag flag);
 
 void print_move(Move mv);
+
+#include <details/movedef_inline.inl>
