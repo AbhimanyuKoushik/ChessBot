@@ -11,14 +11,15 @@ inline void generate_king_moves(const Board& board, MoveList& movelist,
   Piece our_king = (our_side == WHITE) ? W_KING : B_KING;
 
   Bitboard king_bitboard = board.get_piece_bitboard(our_king);
+  Bitboard our_pieces = board.get_side_occupancy(our_side);
   Bitboard enemy_pieces = board.get_side_occupancy(opp_side);
-  Bitboard full_occupancy = board.get_side_occupancy(NB_COLOR);
+  Bitboard full_occupancy = our_pieces | enemy_pieces;
 
   Bitboard king_attacks;
   Square source_sq, target_sq;
 
   source_sq = static_cast<Square>(get_lsb_index(king_bitboard));
-  king_attacks = target_mask & kKingAttacks[source_sq];
+  king_attacks = target_mask & kKingAttacks[source_sq] & ~our_pieces;
 
   while (king_attacks) {
     target_sq = static_cast<Square>(get_lsb_index(king_attacks));

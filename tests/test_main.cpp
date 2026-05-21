@@ -40,6 +40,17 @@ int main(int argc, char* argv[]) {
     test_board();
   }
 
+  if (target == "fen_utility") {
+    test_fen_util();
+  }
+
+  if (target == "all" || target == "perft") {
+    if (!test_performance()) {
+      std::cout << "[FAIL] Performance test!\n";
+      failed_tests++;
+    }
+  }
+
   if (failed_tests == 0)
     return 0;
   else

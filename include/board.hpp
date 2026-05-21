@@ -71,7 +71,7 @@ class Board {
 
   // utilities
   void InitializeBoard();
-  void LoadFEN(std::string fenString);
+  void LoadFEN(const std::string& fenString);
   void printBoard();
 };
 

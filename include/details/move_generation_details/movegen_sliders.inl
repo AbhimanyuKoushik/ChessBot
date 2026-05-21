@@ -30,7 +30,7 @@ inline void generate_slider_moves(const Board& board, MoveList& movelist,
       slider_attacks = QueenAttacks(full_occupancy, source_sq);
     }
 
-    valid_attacks = slider_attacks & target_mask;
+    valid_attacks = slider_attacks & target_mask & ~our_pieces;
 
     while (valid_attacks) {
       target_sq = static_cast<Square>(get_lsb_index(valid_attacks));

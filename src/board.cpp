@@ -1,5 +1,7 @@
 #include <board.hpp>
 #include <iostream>
+#include <sstream>
+#include <string>
 #include <types.hpp>
 
 void Board::InitializeBoard() {
@@ -98,5 +100,117 @@ void Board::printBoard() {
   std::cout << "The position is " << ((is_position_legal()) ? "" : "not ")
             << "legal.\n\n";
 }
+void Board::LoadFEN(const std::string& fenString) {
+  std::istringstream stream(fenString);
+  std::string boardPart, turnPart, castlingRightsPart, enpassentSquarePart,
+      halfMoveClockPart;
 
-void Board::LoadFEN(std::string fenString) { std::cout << fenString << '\n'; }
+  stream >> boardPart >> turnPart >> castlingRightsPart >> enpassentSquarePart;
+
+  if (!(stream >> halfMoveClockPart)) halfMoveClockPart = "0";
+
+  if (enpassentSquarePart == "-") {
+    currentEnpassentSquare = NB_SQ;
+  } else {
+    // Convert algebraic (e.g., "e3") to square index (Assuming Top-Down A8=0)
+    int file = enpassentSquarePart[0] - 'a';
+    int rank = 7 - (enpassentSquarePart[1] - '1');
+    currentEnpassentSquare = static_cast<Square>(rank * 8 + file);
+  }
+
+  if (halfMoveClockPart == "-")
+    currentHalfmoveClock = 0;
+  else
+    currentHalfmoveClock = std::stoi(halfMoveClockPart);
+
+  currentCastlingRights = 0;
+
+  if (castlingRightsPart.find('K') != std::string::npos)
+    currentCastlingRights |= 0x01;
+  if (castlingRightsPart.find('Q') != std::string::npos)
+    currentCastlingRights |= 0x02;
+  if (castlingRightsPart.find('k') != std::string::npos)
+    currentCastlingRights |= 0x04;
+  if (castlingRightsPart.find('q') != std::string::npos)
+    currentCastlingRights |= 0x08;
+
+  pieceCapturedPreviously = NB_PIECES;
+  currentPly = 0;
+  currentSideToMove = (turnPart == "w") ? WHITE : BLACK;
+
+  for (Piece piece = W_PAWN; piece <= B_KING;
+       piece = static_cast<Piece>(piece + 1)) {
+    pieceBitboards[piece] = 0ULL;
+  }
+  pieceOnSquare.fill(NB_PIECES);
+
+  Square sq = static_cast<Square>(0);
+  Piece currentPiece;
+
+  for (char character : boardPart) {
+    if (std::isdigit(character)) {
+      sq = static_cast<Square>(sq + (character - '0'));
+    } else if (character == '/') {
+      continue;
+    } else {
+      switch (character) {
+        case 'P':
+          currentPiece = W_PAWN;
+          break;
+        case 'N':
+          currentPiece = W_KNIGHT;
+          break;
+        case 'B':
+          currentPiece = W_BISHOP;
+          break;
+        case 'R':
+          currentPiece = W_ROOK;
+          break;
+        case 'Q':
+          currentPiece = W_QUEEN;
+          break;
+        case 'K':
+          currentPiece = W_KING;
+          break;
+        case 'p':
+          currentPiece = B_PAWN;
+          break;
+        case 'n':
+          currentPiece = B_KNIGHT;
+          break;
+        case 'b':
+          currentPiece = B_BISHOP;
+          break;
+        case 'r':
+          currentPiece = B_ROOK;
+          break;
+        case 'q':
+          currentPiece = B_QUEEN;
+          break;
+        case 'k':
+          currentPiece = B_KING;
+          break;
+        default:
+          currentPiece = NB_PIECES;
+          break;
+      }
+
+      if (currentPiece != NB_PIECES) {
+        set_bit(pieceBitboards[currentPiece], sq);
+        pieceOnSquare[sq] = currentPiece;
+        sq = static_cast<Square>(sq + 1);
+      }
+    }
+  }
+
+  // Update occupancies
+  sideOccupancies[WHITE] = pieceBitboards[W_PAWN] | pieceBitboards[W_KNIGHT] |
+                           pieceBitboards[W_BISHOP] | pieceBitboards[W_ROOK] |
+                           pieceBitboards[W_QUEEN] | pieceBitboards[W_KING];
+
+  sideOccupancies[BLACK] = pieceBitboards[B_PAWN] | pieceBitboards[B_KNIGHT] |
+                           pieceBitboards[B_BISHOP] | pieceBitboards[B_ROOK] |
+                           pieceBitboards[B_QUEEN] | pieceBitboards[B_KING];
+
+  sideOccupancies[NB_COLOR] = sideOccupancies[WHITE] | sideOccupancies[BLACK];
+}
