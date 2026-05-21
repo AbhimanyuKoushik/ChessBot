@@ -4,6 +4,27 @@
 #include <string>
 #include <types.hpp>
 
+uint64_t Board::calculateHashFromScratch() {
+  uint64_t hash = 0ULL;
+
+  for (int square = 0; square < 64; square++) {
+    Piece piece = pieceOnSquare[square];
+    if (piece != NB_PIECES) hash ^= zkeys.pieces[piece][square];
+  }
+
+  hash ^= zkeys.castling[currentCastlingRights];
+
+  if (currentEnpassentSquare != NB_SQ) {
+    hash ^= zkeys.enpassentFile[currentEnpassentSquare % 8];
+  }
+
+  if (currentSideToMove == BLACK) {
+    hash ^= zkeys.sideToMove;
+  }
+
+  return hash;
+}
+
 void Board::InitializeBoard() {
   pieceBitboards[W_PAWN] = 0x00'FF'00'00'00'00'00'00ULL;
   pieceBitboards[W_KNIGHT] = 0x42'00'00'00'00'00'00'00ULL;
@@ -41,7 +62,8 @@ void Board::InitializeBoard() {
   pieceOnSquare[A1] = W_ROOK;    pieceOnSquare[B1] = W_KNIGHT;    pieceOnSquare[C1] = W_BISHOP;    pieceOnSquare[D1] = W_QUEEN;     pieceOnSquare[E1] = W_KING;    pieceOnSquare[F1] = W_BISHOP;    pieceOnSquare[G1] = W_KNIGHT;    pieceOnSquare[H1] = W_ROOK;
   // clang-format on
 
-  StateInfo emptyInfo = {NB_PIECES, NB_SQ, 0, 0};
+  currentHashValue = calculateHashFromScratch();
+  StateInfo emptyInfo = {NB_PIECES, NB_SQ, 0, 0, 0ULL};
   stateHistory.fill(emptyInfo);
 }
 
@@ -100,6 +122,7 @@ void Board::printBoard() {
   std::cout << "The position is " << ((is_position_legal()) ? "" : "not ")
             << "legal.\n\n";
 }
+
 void Board::LoadFEN(const std::string& fenString) {
   std::istringstream stream(fenString);
   std::string boardPart, turnPart, castlingRightsPart, enpassentSquarePart,
@@ -203,7 +226,8 @@ void Board::LoadFEN(const std::string& fenString) {
     }
   }
 
-  // Update occupancies
+  // Update occupancies and hashValue
+  currentHashValue = calculateHashFromScratch();
   sideOccupancies[WHITE] = pieceBitboards[W_PAWN] | pieceBitboards[W_KNIGHT] |
                            pieceBitboards[W_BISHOP] | pieceBitboards[W_ROOK] |
                            pieceBitboards[W_QUEEN] | pieceBitboards[W_KING];

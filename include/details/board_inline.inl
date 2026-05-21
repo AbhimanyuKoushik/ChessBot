@@ -25,6 +25,7 @@ inline void Board::make_move(Move mv) {
   previousState.enpassentSquare = currentEnpassentSquare;
   previousState.castlingRights = currentCastlingRights;
   previousState.halfmoveClock = currentHalfmoveClock;
+  previousState.hashValue = currentHashValue;
   stateHistory[currentPly] = previousState;
 
   // General updates, have to be done for any type of move
@@ -33,6 +34,13 @@ inline void Board::make_move(Move mv) {
   Bitboard update_mask = ((1ULL << source_sq) | (1ULL << target_sq));
   pieceBitboards[piece_moving] ^= update_mask;
   sideOccupancies[currentSideToMove] ^= update_mask;
+
+  currentHashValue ^= zkeys.castling[currentCastlingRights];
+  currentHashValue ^= (currentEnpassentSquare == NB_SQ)
+                          ? 0
+                          : zkeys.enpassentFile[currentEnpassentSquare % 8];
+  currentHashValue ^= zkeys.pieces[piece_moving][source_sq];
+  currentHashValue ^= zkeys.pieces[piece_moving][target_sq];
 
   currentEnpassentSquare = NB_SQ;
   currentCastlingRights &=
@@ -55,6 +63,7 @@ inline void Board::make_move(Move mv) {
       } else {
         currentEnpassentSquare = static_cast<Square>(target_sq - 8);
       }
+      currentHashValue ^= zkeys.enpassentFile[currentEnpassentSquare % 8];
       currentHalfmoveClock = 0;
       break;
     }
@@ -64,6 +73,7 @@ inline void Board::make_move(Move mv) {
       Bitboard capture_mask = (1ULL << target_sq);
       pieceBitboards[piece_getting_captured] ^= capture_mask;
       sideOccupancies[opposite_side] ^= capture_mask;
+      currentHashValue ^= zkeys.pieces[piece_getting_captured][target_sq];
       break;
     }
 
@@ -75,12 +85,16 @@ inline void Board::make_move(Move mv) {
         sideOccupancies[WHITE] ^= castle_mask;
         pieceOnSquare[H1] = NB_PIECES;
         pieceOnSquare[F1] = W_ROOK;
+        currentHashValue ^= zkeys.pieces[W_ROOK][H1];
+        currentHashValue ^= zkeys.pieces[W_ROOK][F1];
       } else {
         castle_mask = (1ULL << H8) | (1ULL << F8);
         pieceBitboards[B_ROOK] ^= castle_mask;
         sideOccupancies[BLACK] ^= castle_mask;
         pieceOnSquare[H8] = NB_PIECES;
         pieceOnSquare[F8] = B_ROOK;
+        currentHashValue ^= zkeys.pieces[B_ROOK][H8];
+        currentHashValue ^= zkeys.pieces[B_ROOK][F8];
       }
       break;
     }
@@ -93,12 +107,16 @@ inline void Board::make_move(Move mv) {
         sideOccupancies[WHITE] ^= castle_mask;
         pieceOnSquare[A1] = NB_PIECES;
         pieceOnSquare[D1] = W_ROOK;
+        currentHashValue ^= zkeys.pieces[W_ROOK][A1];
+        currentHashValue ^= zkeys.pieces[W_ROOK][D1];
       } else {
         castle_mask = (1ULL << A8) | (1ULL << D8);
         pieceBitboards[B_ROOK] ^= castle_mask;
         sideOccupancies[BLACK] ^= castle_mask;
         pieceOnSquare[A8] = NB_PIECES;
         pieceOnSquare[D8] = B_ROOK;
+        currentHashValue ^= zkeys.pieces[B_ROOK][A8];
+        currentHashValue ^= zkeys.pieces[B_ROOK][D8];
       }
       break;
     }
@@ -111,12 +129,14 @@ inline void Board::make_move(Move mv) {
         sideOccupancies[BLACK] ^= (1ULL << enpass_cap_sq);
         pieceOnSquare[enpass_cap_sq] = NB_PIECES;
         stateHistory[currentPly].capturedPiece = B_PAWN;
+        currentHashValue ^= zkeys.pieces[B_PAWN][enpass_cap_sq];
       } else {
         Square enpass_cap_sq = static_cast<Square>(target_sq - 8);
         pieceBitboards[W_PAWN] ^= (1ULL << enpass_cap_sq);
         sideOccupancies[WHITE] ^= (1ULL << enpass_cap_sq);
         pieceOnSquare[enpass_cap_sq] = NB_PIECES;
         stateHistory[currentPly].capturedPiece = W_PAWN;
+        currentHashValue ^= zkeys.pieces[W_PAWN][enpass_cap_sq];
       }
       break;
     }
@@ -129,10 +149,14 @@ inline void Board::make_move(Move mv) {
         pieceOnSquare[target_sq] = W_QUEEN;
         pieceBitboards[W_PAWN] ^= prom_sq_mask;
         pieceBitboards[W_QUEEN] ^= prom_sq_mask;
+        currentHashValue ^= zkeys.pieces[W_PAWN][target_sq];
+        currentHashValue ^= zkeys.pieces[W_QUEEN][target_sq];
       } else {
         pieceOnSquare[target_sq] = B_QUEEN;
         pieceBitboards[B_PAWN] ^= prom_sq_mask;
         pieceBitboards[B_QUEEN] ^= prom_sq_mask;
+        currentHashValue ^= zkeys.pieces[B_PAWN][target_sq];
+        currentHashValue ^= zkeys.pieces[B_QUEEN][target_sq];
       }
       break;
     }
@@ -145,10 +169,14 @@ inline void Board::make_move(Move mv) {
         pieceOnSquare[target_sq] = W_ROOK;
         pieceBitboards[W_PAWN] ^= prom_sq_mask;
         pieceBitboards[W_ROOK] ^= prom_sq_mask;
+        currentHashValue ^= zkeys.pieces[W_PAWN][target_sq];
+        currentHashValue ^= zkeys.pieces[W_ROOK][target_sq];
       } else {
         pieceOnSquare[target_sq] = B_ROOK;
         pieceBitboards[B_PAWN] ^= prom_sq_mask;
         pieceBitboards[B_ROOK] ^= prom_sq_mask;
+        currentHashValue ^= zkeys.pieces[B_PAWN][target_sq];
+        currentHashValue ^= zkeys.pieces[B_ROOK][target_sq];
       }
       break;
     }
@@ -161,10 +189,14 @@ inline void Board::make_move(Move mv) {
         pieceOnSquare[target_sq] = W_BISHOP;
         pieceBitboards[W_PAWN] ^= prom_sq_mask;
         pieceBitboards[W_BISHOP] ^= prom_sq_mask;
+        currentHashValue ^= zkeys.pieces[W_PAWN][target_sq];
+        currentHashValue ^= zkeys.pieces[W_BISHOP][target_sq];
       } else {
         pieceOnSquare[target_sq] = B_BISHOP;
         pieceBitboards[B_PAWN] ^= prom_sq_mask;
         pieceBitboards[B_BISHOP] ^= prom_sq_mask;
+        currentHashValue ^= zkeys.pieces[B_PAWN][target_sq];
+        currentHashValue ^= zkeys.pieces[B_BISHOP][target_sq];
       }
       break;
     }
@@ -177,10 +209,14 @@ inline void Board::make_move(Move mv) {
         pieceOnSquare[target_sq] = W_KNIGHT;
         pieceBitboards[W_PAWN] ^= prom_sq_mask;
         pieceBitboards[W_KNIGHT] ^= prom_sq_mask;
+        currentHashValue ^= zkeys.pieces[W_PAWN][target_sq];
+        currentHashValue ^= zkeys.pieces[W_KNIGHT][target_sq];
       } else {
         pieceOnSquare[target_sq] = B_KNIGHT;
         pieceBitboards[B_PAWN] ^= prom_sq_mask;
         pieceBitboards[B_KNIGHT] ^= prom_sq_mask;
+        currentHashValue ^= zkeys.pieces[B_PAWN][target_sq];
+        currentHashValue ^= zkeys.pieces[B_KNIGHT][target_sq];
       }
       break;
     }
@@ -193,14 +229,19 @@ inline void Board::make_move(Move mv) {
         pieceOnSquare[target_sq] = W_QUEEN;
         pieceBitboards[W_PAWN] ^= prom_sq_mask;
         pieceBitboards[W_QUEEN] ^= prom_sq_mask;
+        currentHashValue ^= zkeys.pieces[W_PAWN][target_sq];
+        currentHashValue ^= zkeys.pieces[W_QUEEN][target_sq];
       } else {
         pieceOnSquare[target_sq] = B_QUEEN;
         pieceBitboards[B_PAWN] ^= prom_sq_mask;
         pieceBitboards[B_QUEEN] ^= prom_sq_mask;
+        currentHashValue ^= zkeys.pieces[B_PAWN][target_sq];
+        currentHashValue ^= zkeys.pieces[B_QUEEN][target_sq];
       }
 
       pieceBitboards[piece_getting_captured] ^= prom_sq_mask;
       sideOccupancies[opposite_side] ^= prom_sq_mask;
+      currentHashValue ^= zkeys.pieces[piece_getting_captured][target_sq];
       break;
     }
 
@@ -212,14 +253,19 @@ inline void Board::make_move(Move mv) {
         pieceOnSquare[target_sq] = W_ROOK;
         pieceBitboards[W_PAWN] ^= prom_sq_mask;
         pieceBitboards[W_ROOK] ^= prom_sq_mask;
+        currentHashValue ^= zkeys.pieces[W_PAWN][target_sq];
+        currentHashValue ^= zkeys.pieces[W_ROOK][target_sq];
       } else {
         pieceOnSquare[target_sq] = B_ROOK;
         pieceBitboards[B_PAWN] ^= prom_sq_mask;
         pieceBitboards[B_ROOK] ^= prom_sq_mask;
+        currentHashValue ^= zkeys.pieces[B_PAWN][target_sq];
+        currentHashValue ^= zkeys.pieces[B_ROOK][target_sq];
       }
 
       pieceBitboards[piece_getting_captured] ^= prom_sq_mask;
       sideOccupancies[opposite_side] ^= prom_sq_mask;
+      currentHashValue ^= zkeys.pieces[piece_getting_captured][target_sq];
       break;
     }
 
@@ -231,14 +277,19 @@ inline void Board::make_move(Move mv) {
         pieceOnSquare[target_sq] = W_BISHOP;
         pieceBitboards[W_PAWN] ^= prom_sq_mask;
         pieceBitboards[W_BISHOP] ^= prom_sq_mask;
+        currentHashValue ^= zkeys.pieces[W_PAWN][target_sq];
+        currentHashValue ^= zkeys.pieces[W_BISHOP][target_sq];
       } else {
         pieceOnSquare[target_sq] = B_BISHOP;
         pieceBitboards[B_PAWN] ^= prom_sq_mask;
         pieceBitboards[B_BISHOP] ^= prom_sq_mask;
+        currentHashValue ^= zkeys.pieces[B_PAWN][target_sq];
+        currentHashValue ^= zkeys.pieces[B_BISHOP][target_sq];
       }
 
       pieceBitboards[piece_getting_captured] ^= prom_sq_mask;
       sideOccupancies[opposite_side] ^= prom_sq_mask;
+      currentHashValue ^= zkeys.pieces[piece_getting_captured][target_sq];
       break;
     }
 
@@ -250,14 +301,19 @@ inline void Board::make_move(Move mv) {
         pieceOnSquare[target_sq] = W_KNIGHT;
         pieceBitboards[W_PAWN] ^= prom_sq_mask;
         pieceBitboards[W_KNIGHT] ^= prom_sq_mask;
+        currentHashValue ^= zkeys.pieces[W_PAWN][target_sq];
+        currentHashValue ^= zkeys.pieces[W_KNIGHT][target_sq];
       } else {
         pieceOnSquare[target_sq] = B_KNIGHT;
         pieceBitboards[B_PAWN] ^= prom_sq_mask;
         pieceBitboards[B_KNIGHT] ^= prom_sq_mask;
+        currentHashValue ^= zkeys.pieces[B_PAWN][target_sq];
+        currentHashValue ^= zkeys.pieces[B_KNIGHT][target_sq];
       }
 
       pieceBitboards[piece_getting_captured] ^= prom_sq_mask;
       sideOccupancies[opposite_side] ^= prom_sq_mask;
+      currentHashValue ^= zkeys.pieces[piece_getting_captured][target_sq];
       break;
     }
 
@@ -267,6 +323,8 @@ inline void Board::make_move(Move mv) {
 
   currentPly++;
   sideOccupancies[NB_COLOR] = sideOccupancies[WHITE] | sideOccupancies[BLACK];
+  currentHashValue ^= zkeys.castling[currentCastlingRights];
+  currentHashValue ^= zkeys.sideToMove;
   currentSideToMove = (currentSideToMove == WHITE) ? BLACK : WHITE;
 }
 
@@ -281,6 +339,7 @@ inline void Board::undo_move(Move mv) {
   currentEnpassentSquare = previousState.enpassentSquare;
   currentCastlingRights = previousState.castlingRights;
   currentHalfmoveClock = previousState.halfmoveClock;
+  currentHashValue = previousState.hashValue;
 
   Square previous_source_sq = get_move_source_sq(mv);
   Square previous_target_sq = get_move_target_sq(mv);
@@ -598,8 +657,10 @@ inline uint8_t Board::get_castling_rights() const {
   return currentCastlingRights;
 }
 
+inline uint64_t Board::get_current_hash() const { return currentHashValue; }
+
 Board::Board() {
-  StateInfo emptyInfo = {NB_PIECES, NB_SQ, 0, 0};
+  StateInfo emptyInfo = {NB_PIECES, NB_SQ, 0, 0, 0ULL};
   stateHistory.fill(emptyInfo);
   pieceBitboards.fill(0ULL);
   sideOccupancies.fill(0ULL);
@@ -610,4 +671,5 @@ Board::Board() {
   currentEnpassentSquare = NB_SQ;
   currentCastlingRights = 0x0F;
   currentHalfmoveClock = 0;
+  currentHashValue = 0ULL;
 }

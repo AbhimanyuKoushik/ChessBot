@@ -6,6 +6,7 @@
 #include <movedef.hpp>
 #include <sliders.hpp>
 #include <types.hpp>
+#include <zobrist.hpp>
 
 /*
 StateInfo contains the following information -
@@ -24,6 +25,7 @@ struct StateInfo {
   Square enpassentSquare;
   uint8_t castlingRights;
   uint8_t halfmoveClock;
+  uint64_t hashValue;
 };
 
 class Board {
@@ -39,6 +41,7 @@ class Board {
   Piece pieceCapturedPreviously;
   uint8_t currentHalfmoveClock;
   uint16_t currentPly;
+  uint64_t currentHashValue;
 
  public:
   inline void make_move(Move mv);
@@ -66,10 +69,13 @@ class Board {
 
   inline uint8_t get_castling_rights() const;
 
+  inline uint64_t get_current_hash() const;
+
   // constructor
   inline Board();
 
   // utilities
+  uint64_t calculateHashFromScratch();
   void InitializeBoard();
   void LoadFEN(const std::string& fenString);
   void printBoard();

@@ -7,6 +7,8 @@
 #include <utility>  // For std::pair
 #include <vector>
 
+#define DEBUG_ZOBRIST 0
+
 // Recursive function to count nodes
 inline uint64_t perft(Board& board, int depth) {
   if (depth == 0) {
@@ -32,6 +34,14 @@ inline uint64_t perft(Board& board, int depth) {
       continue;
     }
 
+#if DEBUG_ZOBRIST
+    if (board.get_current_hash() != board.calculateHashFromScratch()) {
+      std::cout << "Zobrist Mismatch Detected!\n";
+      board.printBoard();
+      return 0ULL;
+    }
+#endif
+
     nodes += perft(board, depth - 1);
 
     board.undo_move(mv);
@@ -56,6 +66,7 @@ inline std::pair<double, bool> test_perf(
     auto t0 = std::chrono::high_resolution_clock::now();
 
     uint64_t nodes = perft(board, depth);
+    if (nodes == 0ULL) return {0, false};
 
     auto t1 = std::chrono::high_resolution_clock::now();
     auto microseconds =
