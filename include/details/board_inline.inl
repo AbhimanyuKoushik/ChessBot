@@ -2,6 +2,7 @@
 
 #include <array>
 #include <board.hpp>
+#include <details/pesto.inl>
 
 inline constexpr std::array<uint8_t, 64> castlingRights = {
     0x07, 0x0F, 0x0F, 0x0F, 0x03, 0x0F, 0x0F, 0x0B, 0x0F, 0x0F, 0x0F,
@@ -17,6 +18,11 @@ inline void Board::make_move(Move mv) {
   MoveFlag flag = get_move_flag(mv);
   Piece piece_moving = pieceOnSquare[source_sq];
   Piece piece_getting_captured = pieceOnSquare[target_sq];
+  PieceType piece_type_moving = static_cast<PieceType>(
+      (piece_moving >= B_PAWN) ? piece_moving - B_PAWN : piece_moving);
+  PieceType piece_type_getting_captured = static_cast<PieceType>(
+      (piece_getting_captured >= B_PAWN) ? piece_getting_captured - B_PAWN
+                                         : piece_getting_captured);
   Color opposite_side = (currentSideToMove == WHITE) ? BLACK : WHITE;
 
   // Updating the history before making any changes
@@ -26,6 +32,9 @@ inline void Board::make_move(Move mv) {
   previousState.castlingRights = currentCastlingRights;
   previousState.halfmoveClock = currentHalfmoveClock;
   previousState.hashValue = currentHashValue;
+  previousState.middlegameScore = currentMiddlegameScore;
+  previousState.endgameScore = currentEndgameScore;
+  previousState.phase = currentPhase;
   stateHistory[currentPly] = previousState;
 
   // General updates, have to be done for any type of move
@@ -48,6 +57,31 @@ inline void Board::make_move(Move mv) {
   pieceOnSquare[source_sq] = NB_PIECES;
   pieceOnSquare[target_sq] = piece_moving;
   currentHalfmoveClock++;
+
+  Square flipped_source_sq = static_cast<Square>(
+      (currentSideToMove == WHITE) ? source_sq : FLIP(source_sq));
+  Square flipped_target_sq = static_cast<Square>(
+      (currentSideToMove == WHITE) ? target_sq : FLIP(target_sq));
+  // When a capture happens, you have to remove the score from victims
+  // perspective If a white knight is capture (source and target square are
+  // flipped because its black to move), we have to remove score by keeping with
+  // respect to white, not black
+  Square flipped_victim_sq = static_cast<Square>(
+      (currentSideToMove == WHITE) ? FLIP(target_sq) : target_sq);
+
+  // Score is always calculated from white's perspective
+  // Hence for black we have to do what we do for white
+  // subtract in place of add for black and vice versa
+  // The multiplier takes care such that we write code in white's perspective
+  short int multiplier = (currentSideToMove == WHITE) ? 1 : -1;
+  currentMiddlegameScore -=
+      multiplier * pestoMiddlegame[piece_type_moving][flipped_source_sq];
+  currentMiddlegameScore +=
+      multiplier * pestoMiddlegame[piece_type_moving][flipped_target_sq];
+  currentEndgameScore -=
+      multiplier * pestoEndgame[piece_type_moving][flipped_source_sq];
+  currentEndgameScore +=
+      multiplier * pestoEndgame[piece_type_moving][flipped_target_sq];
 
   // Move type specific updates
   switch (flag) {
@@ -74,6 +108,13 @@ inline void Board::make_move(Move mv) {
       pieceBitboards[piece_getting_captured] ^= capture_mask;
       sideOccupancies[opposite_side] ^= capture_mask;
       currentHashValue ^= zkeys.pieces[piece_getting_captured][target_sq];
+      currentMiddlegameScore +=
+          multiplier *
+          pestoMiddlegame[piece_type_getting_captured][flipped_victim_sq];
+      currentEndgameScore +=
+          multiplier *
+          pestoEndgame[piece_type_getting_captured][flipped_victim_sq];
+      currentPhase -= piece_phase[piece_type_getting_captured];
       break;
     }
 
@@ -96,6 +137,12 @@ inline void Board::make_move(Move mv) {
         currentHashValue ^= zkeys.pieces[B_ROOK][H8];
         currentHashValue ^= zkeys.pieces[B_ROOK][F8];
       }
+
+      // flipped H8 is H1, same with other
+      currentMiddlegameScore -= multiplier * pestoMiddlegame[ROOK][H1];
+      currentMiddlegameScore += multiplier * pestoMiddlegame[ROOK][F1];
+      currentEndgameScore -= multiplier * pestoEndgame[ROOK][H1];
+      currentEndgameScore += multiplier * pestoEndgame[ROOK][F1];
       break;
     }
 
@@ -118,13 +165,19 @@ inline void Board::make_move(Move mv) {
         currentHashValue ^= zkeys.pieces[B_ROOK][A8];
         currentHashValue ^= zkeys.pieces[B_ROOK][D8];
       }
+      currentMiddlegameScore -= multiplier * pestoMiddlegame[ROOK][A1];
+      currentMiddlegameScore += multiplier * pestoMiddlegame[ROOK][D1];
+      currentEndgameScore -= multiplier * pestoEndgame[ROOK][A1];
+      currentEndgameScore += multiplier * pestoEndgame[ROOK][D1];
       break;
     }
 
     case ENPASS_CAP: {
       currentHalfmoveClock = 0;
+      Square flipped_enpass_victim_square;
       if (currentSideToMove == WHITE) {
         Square enpass_cap_sq = static_cast<Square>(target_sq + 8);
+        flipped_enpass_victim_square = static_cast<Square>(FLIP(enpass_cap_sq));
         pieceBitboards[B_PAWN] ^= (1ULL << enpass_cap_sq);
         sideOccupancies[BLACK] ^= (1ULL << enpass_cap_sq);
         pieceOnSquare[enpass_cap_sq] = NB_PIECES;
@@ -132,12 +185,17 @@ inline void Board::make_move(Move mv) {
         currentHashValue ^= zkeys.pieces[B_PAWN][enpass_cap_sq];
       } else {
         Square enpass_cap_sq = static_cast<Square>(target_sq - 8);
+        flipped_enpass_victim_square = enpass_cap_sq;
         pieceBitboards[W_PAWN] ^= (1ULL << enpass_cap_sq);
         sideOccupancies[WHITE] ^= (1ULL << enpass_cap_sq);
         pieceOnSquare[enpass_cap_sq] = NB_PIECES;
         stateHistory[currentPly].capturedPiece = W_PAWN;
         currentHashValue ^= zkeys.pieces[W_PAWN][enpass_cap_sq];
       }
+      currentMiddlegameScore +=
+          multiplier * pestoMiddlegame[PAWN][flipped_enpass_victim_square];
+      currentEndgameScore +=
+          multiplier * pestoEndgame[PAWN][flipped_enpass_victim_square];
       break;
     }
 
@@ -158,6 +216,14 @@ inline void Board::make_move(Move mv) {
         currentHashValue ^= zkeys.pieces[B_PAWN][target_sq];
         currentHashValue ^= zkeys.pieces[B_QUEEN][target_sq];
       }
+      currentMiddlegameScore -=
+          multiplier * pestoMiddlegame[PAWN][flipped_target_sq];
+      currentMiddlegameScore +=
+          multiplier * pestoMiddlegame[QUEEN][flipped_target_sq];
+      currentEndgameScore -= multiplier * pestoEndgame[PAWN][flipped_target_sq];
+      currentEndgameScore +=
+          multiplier * pestoEndgame[QUEEN][flipped_target_sq];
+      currentPhase += piece_phase[QUEEN];
       break;
     }
 
@@ -178,6 +244,13 @@ inline void Board::make_move(Move mv) {
         currentHashValue ^= zkeys.pieces[B_PAWN][target_sq];
         currentHashValue ^= zkeys.pieces[B_ROOK][target_sq];
       }
+      currentMiddlegameScore -=
+          multiplier * pestoMiddlegame[PAWN][flipped_target_sq];
+      currentMiddlegameScore +=
+          multiplier * pestoMiddlegame[ROOK][flipped_target_sq];
+      currentEndgameScore -= multiplier * pestoEndgame[PAWN][flipped_target_sq];
+      currentEndgameScore += multiplier * pestoEndgame[ROOK][flipped_target_sq];
+      currentPhase += piece_phase[ROOK];
       break;
     }
 
@@ -198,6 +271,14 @@ inline void Board::make_move(Move mv) {
         currentHashValue ^= zkeys.pieces[B_PAWN][target_sq];
         currentHashValue ^= zkeys.pieces[B_BISHOP][target_sq];
       }
+      currentMiddlegameScore -=
+          multiplier * pestoMiddlegame[PAWN][flipped_target_sq];
+      currentMiddlegameScore +=
+          multiplier * pestoMiddlegame[BISHOP][flipped_target_sq];
+      currentEndgameScore -= multiplier * pestoEndgame[PAWN][flipped_target_sq];
+      currentEndgameScore +=
+          multiplier * pestoEndgame[BISHOP][flipped_target_sq];
+      currentPhase += piece_phase[BISHOP];
       break;
     }
 
@@ -218,6 +299,14 @@ inline void Board::make_move(Move mv) {
         currentHashValue ^= zkeys.pieces[B_PAWN][target_sq];
         currentHashValue ^= zkeys.pieces[B_KNIGHT][target_sq];
       }
+      currentMiddlegameScore -=
+          multiplier * pestoMiddlegame[PAWN][flipped_target_sq];
+      currentMiddlegameScore +=
+          multiplier * pestoMiddlegame[KNIGHT][flipped_target_sq];
+      currentEndgameScore -= multiplier * pestoEndgame[PAWN][flipped_target_sq];
+      currentEndgameScore +=
+          multiplier * pestoEndgame[KNIGHT][flipped_target_sq];
+      currentPhase += piece_phase[KNIGHT];
       break;
     }
 
@@ -238,6 +327,21 @@ inline void Board::make_move(Move mv) {
         currentHashValue ^= zkeys.pieces[B_PAWN][target_sq];
         currentHashValue ^= zkeys.pieces[B_QUEEN][target_sq];
       }
+      currentMiddlegameScore +=
+          multiplier *
+          pestoMiddlegame[piece_type_getting_captured][flipped_victim_sq];
+      currentMiddlegameScore -=
+          multiplier * pestoMiddlegame[PAWN][flipped_target_sq];
+      currentMiddlegameScore +=
+          multiplier * pestoMiddlegame[QUEEN][flipped_target_sq];
+      currentEndgameScore +=
+          multiplier *
+          pestoEndgame[piece_type_getting_captured][flipped_victim_sq];
+      currentEndgameScore -= multiplier * pestoEndgame[PAWN][flipped_target_sq];
+      currentEndgameScore +=
+          multiplier * pestoEndgame[QUEEN][flipped_target_sq];
+      currentPhase -= piece_phase[piece_type_getting_captured];
+      currentPhase += piece_phase[QUEEN];
 
       pieceBitboards[piece_getting_captured] ^= prom_sq_mask;
       sideOccupancies[opposite_side] ^= prom_sq_mask;
@@ -262,6 +366,20 @@ inline void Board::make_move(Move mv) {
         currentHashValue ^= zkeys.pieces[B_PAWN][target_sq];
         currentHashValue ^= zkeys.pieces[B_ROOK][target_sq];
       }
+      currentMiddlegameScore +=
+          multiplier *
+          pestoMiddlegame[piece_type_getting_captured][flipped_victim_sq];
+      currentMiddlegameScore -=
+          multiplier * pestoMiddlegame[PAWN][flipped_target_sq];
+      currentMiddlegameScore +=
+          multiplier * pestoMiddlegame[ROOK][flipped_target_sq];
+      currentEndgameScore +=
+          multiplier *
+          pestoEndgame[piece_type_getting_captured][flipped_victim_sq];
+      currentEndgameScore -= multiplier * pestoEndgame[PAWN][flipped_target_sq];
+      currentEndgameScore += multiplier * pestoEndgame[ROOK][flipped_target_sq];
+      currentPhase -= piece_phase[piece_type_getting_captured];
+      currentPhase += piece_phase[ROOK];
 
       pieceBitboards[piece_getting_captured] ^= prom_sq_mask;
       sideOccupancies[opposite_side] ^= prom_sq_mask;
@@ -286,6 +404,21 @@ inline void Board::make_move(Move mv) {
         currentHashValue ^= zkeys.pieces[B_PAWN][target_sq];
         currentHashValue ^= zkeys.pieces[B_BISHOP][target_sq];
       }
+      currentMiddlegameScore +=
+          multiplier *
+          pestoMiddlegame[piece_type_getting_captured][flipped_victim_sq];
+      currentMiddlegameScore -=
+          multiplier * pestoMiddlegame[PAWN][flipped_target_sq];
+      currentMiddlegameScore +=
+          multiplier * pestoMiddlegame[BISHOP][flipped_target_sq];
+      currentEndgameScore +=
+          multiplier *
+          pestoEndgame[piece_type_getting_captured][flipped_victim_sq];
+      currentEndgameScore -= multiplier * pestoEndgame[PAWN][flipped_target_sq];
+      currentEndgameScore +=
+          multiplier * pestoEndgame[BISHOP][flipped_target_sq];
+      currentPhase -= piece_phase[piece_type_getting_captured];
+      currentPhase += piece_phase[BISHOP];
 
       pieceBitboards[piece_getting_captured] ^= prom_sq_mask;
       sideOccupancies[opposite_side] ^= prom_sq_mask;
@@ -310,6 +443,21 @@ inline void Board::make_move(Move mv) {
         currentHashValue ^= zkeys.pieces[B_PAWN][target_sq];
         currentHashValue ^= zkeys.pieces[B_KNIGHT][target_sq];
       }
+      currentMiddlegameScore +=
+          multiplier *
+          pestoMiddlegame[piece_type_getting_captured][flipped_victim_sq];
+      currentMiddlegameScore -=
+          multiplier * pestoMiddlegame[PAWN][flipped_target_sq];
+      currentMiddlegameScore +=
+          multiplier * pestoMiddlegame[KNIGHT][flipped_target_sq];
+      currentEndgameScore +=
+          multiplier *
+          pestoEndgame[piece_type_getting_captured][flipped_victim_sq];
+      currentEndgameScore -= multiplier * pestoEndgame[PAWN][flipped_target_sq];
+      currentEndgameScore +=
+          multiplier * pestoEndgame[KNIGHT][flipped_target_sq];
+      currentPhase -= piece_phase[piece_type_getting_captured];
+      currentPhase += piece_phase[KNIGHT];
 
       pieceBitboards[piece_getting_captured] ^= prom_sq_mask;
       sideOccupancies[opposite_side] ^= prom_sq_mask;
@@ -340,6 +488,9 @@ inline void Board::undo_move(Move mv) {
   currentCastlingRights = previousState.castlingRights;
   currentHalfmoveClock = previousState.halfmoveClock;
   currentHashValue = previousState.hashValue;
+  currentMiddlegameScore = previousState.middlegameScore;
+  currentEndgameScore = previousState.endgameScore;
+  currentPhase = previousState.phase;
 
   Square previous_source_sq = get_move_source_sq(mv);
   Square previous_target_sq = get_move_target_sq(mv);
@@ -659,8 +810,18 @@ inline uint8_t Board::get_castling_rights() const {
 
 inline uint64_t Board::get_current_hash() const { return currentHashValue; }
 
+inline short int Board::get_current_middlegame_score() const {
+  return currentMiddlegameScore;
+}
+
+inline short int Board::get_current_endgame_score() const {
+  return currentEndgameScore;
+}
+
+inline uint8_t Board::get_current_phase() const { return currentPhase; }
+
 Board::Board() {
-  StateInfo emptyInfo = {NB_PIECES, NB_SQ, 0, 0, 0ULL};
+  StateInfo emptyInfo = {NB_PIECES, NB_SQ, 0, 0, 0, 0, 0, 0ULL};
   stateHistory.fill(emptyInfo);
   pieceBitboards.fill(0ULL);
   sideOccupancies.fill(0ULL);

@@ -25,6 +25,72 @@ uint64_t Board::calculateHashFromScratch() {
   return hash;
 }
 
+short int Board::calculateMiddlegameScoresFromScratch() {
+  short int calculatedMiddlegameScore = 0;
+  short int multiplier;
+  Square flipped_square;
+  for (int square = 0; square < 64; square++) {
+    Piece piece_on_square = pieceOnSquare[square];
+
+    if (piece_on_square >= B_PAWN) {
+      flipped_square = static_cast<Square>(FLIP(square));
+      multiplier = -1;
+    } else {
+      flipped_square = static_cast<Square>(square);
+      multiplier = 1;
+    }
+
+    PieceType piece_type_on_square = static_cast<PieceType>(
+        piece_on_square >= B_PAWN ? piece_on_square - B_PAWN : piece_on_square);
+
+    if (piece_type_on_square != NB_PIECE_TYPES) {
+      calculatedMiddlegameScore +=
+          multiplier * pestoMiddlegame[piece_type_on_square][flipped_square];
+    }
+  }
+
+  return calculatedMiddlegameScore;
+}
+
+short int Board::calculateEndgameScoresFromScratch() {
+  short int calculatedEndgameScore = 0;
+  short int multiplier;
+  Square flipped_square;
+  for (int square = 0; square < 64; square++) {
+    Piece piece_on_square = pieceOnSquare[square];
+
+    if (piece_on_square >= B_PAWN) {
+      flipped_square = static_cast<Square>(FLIP(square));
+      multiplier = -1;
+    } else {
+      flipped_square = static_cast<Square>(square);
+      multiplier = 1;
+    }
+
+    PieceType piece_type_on_square = static_cast<PieceType>(
+        piece_on_square >= B_PAWN ? piece_on_square - B_PAWN : piece_on_square);
+
+    if (piece_type_on_square != NB_PIECE_TYPES) {
+      calculatedEndgameScore +=
+          multiplier * pestoEndgame[piece_type_on_square][flipped_square];
+    }
+  }
+
+  return calculatedEndgameScore;
+}
+
+uint8_t Board::calculatePhaseFromScratch() {
+  uint8_t calculatedPhase = 0;
+  for (int square = 0; square < 64; square++) {
+    Piece piece_on_square = pieceOnSquare[square];
+    PieceType piece_type_on_square = static_cast<PieceType>(
+        piece_on_square >= B_PAWN ? piece_on_square - B_PAWN : piece_on_square);
+    if (piece_type_on_square != NB_PIECE_TYPES)
+      calculatedPhase += piece_phase[piece_type_on_square];
+  }
+  return calculatedPhase;
+}
+
 void Board::InitializeBoard() {
   pieceBitboards[W_PAWN] = 0x00'FF'00'00'00'00'00'00ULL;
   pieceBitboards[W_KNIGHT] = 0x42'00'00'00'00'00'00'00ULL;
@@ -63,7 +129,10 @@ void Board::InitializeBoard() {
   // clang-format on
 
   currentHashValue = calculateHashFromScratch();
-  StateInfo emptyInfo = {NB_PIECES, NB_SQ, 0, 0, 0ULL};
+  currentMiddlegameScore = calculateMiddlegameScoresFromScratch();
+  currentEndgameScore = calculateEndgameScoresFromScratch();
+  currentPhase = calculatePhaseFromScratch();
+  StateInfo emptyInfo = {NB_PIECES, NB_SQ, 0, 0, 0, 0, 0, 0ULL};
   stateHistory.fill(emptyInfo);
 }
 
@@ -228,6 +297,9 @@ void Board::LoadFEN(const std::string& fenString) {
 
   // Update occupancies and hashValue
   currentHashValue = calculateHashFromScratch();
+  currentMiddlegameScore = calculateMiddlegameScoresFromScratch();
+  currentEndgameScore = calculateEndgameScoresFromScratch();
+  currentPhase = calculatePhaseFromScratch();
   sideOccupancies[WHITE] = pieceBitboards[W_PAWN] | pieceBitboards[W_KNIGHT] |
                            pieceBitboards[W_BISHOP] | pieceBitboards[W_ROOK] |
                            pieceBitboards[W_QUEEN] | pieceBitboards[W_KING];
@@ -237,4 +309,6 @@ void Board::LoadFEN(const std::string& fenString) {
                            pieceBitboards[B_QUEEN] | pieceBitboards[B_KING];
 
   sideOccupancies[NB_COLOR] = sideOccupancies[WHITE] | sideOccupancies[BLACK];
+  StateInfo emptyInfo = {NB_PIECES, NB_SQ, 0, 0, 0, 0, 0, 0ULL};
+  stateHistory.fill(emptyInfo);
 }

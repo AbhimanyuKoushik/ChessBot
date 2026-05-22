@@ -25,6 +25,9 @@ struct StateInfo {
   Square enpassentSquare;
   uint8_t castlingRights;
   uint8_t halfmoveClock;
+  short int middlegameScore;
+  short int endgameScore;
+  uint8_t phase;
   uint64_t hashValue;
 };
 
@@ -41,6 +44,9 @@ class Board {
   Piece pieceCapturedPreviously;
   uint8_t currentHalfmoveClock;
   uint16_t currentPly;
+  short int currentMiddlegameScore;
+  short int currentEndgameScore;
+  uint8_t currentPhase;
   uint64_t currentHashValue;
 
  public:
@@ -71,11 +77,20 @@ class Board {
 
   inline uint64_t get_current_hash() const;
 
+  inline short int get_current_middlegame_score() const;
+
+  inline short int get_current_endgame_score() const;
+
+  inline uint8_t get_current_phase() const;
+
   // constructor
   inline Board();
 
   // utilities
   uint64_t calculateHashFromScratch();
+  short int calculateMiddlegameScoresFromScratch();
+  short int calculateEndgameScoresFromScratch();
+  uint8_t calculatePhaseFromScratch();
   void InitializeBoard();
   void LoadFEN(const std::string& fenString);
   void printBoard();

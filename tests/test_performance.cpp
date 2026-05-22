@@ -8,6 +8,7 @@
 #include <vector>
 
 #define DEBUG_ZOBRIST 0
+#define DEBUG_PESTO 0
 
 // Recursive function to count nodes
 inline uint64_t perft(Board& board, int depth) {
@@ -37,6 +38,21 @@ inline uint64_t perft(Board& board, int depth) {
 #if DEBUG_ZOBRIST
     if (board.get_current_hash() != board.calculateHashFromScratch()) {
       std::cout << "Zobrist Mismatch Detected!\n";
+      board.printBoard();
+      return 0ULL;
+    }
+#endif
+
+#if DEBUG_PESTO
+    if (board.get_current_middlegame_score() !=
+        board.calculateMiddlegameScoresFromScratch()) {
+      std::cout << "Pesto Middlegame score Mismatch Detected!\n";
+      board.printBoard();
+      return 0ULL;
+    }
+    if (board.get_current_endgame_score() !=
+        board.calculateEndgameScoresFromScratch()) {
+      std::cout << "Pesto Endgame score Mismatch Detected!\n";
       board.printBoard();
       return 0ULL;
     }
