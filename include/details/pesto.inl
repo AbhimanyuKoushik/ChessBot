@@ -141,22 +141,36 @@ inline constexpr std::array<int16_t, 64> pestoKingEndgame = {
 };
 //clang-format on
 
-inline constexpr std::array<std::array<int16_t, 64>, NB_PIECE_TYPES> pestoMiddlegame = {
-  pestoPawnMiddlegame,
-  pestoKnightMiddlegame,
-  pestoBishopMiddlegame,
-  pestoRookMiddlegame,
-  pestoQueenMiddlegame,
-  pestoKingMiddlegame
+// Helper function to bake base piece values into the positional tables at compile time
+inline constexpr std::array<short int, 64>
+  combine_table(const std::array<short int, 64>& table, short int weight) {
+  
+  std::array<short int, 64> result = {};
+  for (int i = 0; i < 64; i++) {
+    result[i] = table[i] + weight;
+  }
+  return result;
+}
+
+inline constexpr short int mg_value[6] = {82, 337, 365, 477, 1025, 0};
+inline constexpr short int eg_value[6] = {94, 281, 297, 512, 936, 0};
+
+inline constexpr std::array<std::array<short int, 64>, NB_PIECE_TYPES> pestoMiddlegame = {
+  combine_table(pestoPawnMiddlegame, mg_value[PAWN]),
+  combine_table(pestoKnightMiddlegame, mg_value[KNIGHT]),
+  combine_table(pestoBishopMiddlegame, mg_value[BISHOP]),
+  combine_table(pestoRookMiddlegame, mg_value[ROOK]),
+  combine_table(pestoQueenMiddlegame, mg_value[QUEEN]),
+  combine_table(pestoKingMiddlegame, mg_value[KING])
 };
 
-inline constexpr std::array<std::array<int16_t, 64>, NB_PIECE_TYPES> pestoEndgame = {
-  pestoPawnEndgame,
-  pestoKnightEndgame,
-  pestoBishopEndgame,
-  pestoRookEndgame,
-  pestoQueenEndgame,
-  pestoKingEndgame
+inline constexpr std::array<std::array<short int, 64>, NB_PIECE_TYPES> pestoEndgame = {
+  combine_table(pestoPawnEndgame, eg_value[PAWN]),
+  combine_table(pestoKnightEndgame, eg_value[KNIGHT]),
+  combine_table(pestoBishopEndgame, eg_value[BISHOP]),
+  combine_table(pestoRookEndgame, eg_value[ROOK]),
+  combine_table(pestoQueenEndgame, eg_value[QUEEN]),
+  combine_table(pestoKingEndgame, eg_value[KING])
 };
 
 inline constexpr std::array<int, NB_PIECE_TYPES> piece_phase = {0, 1, 1, 2, 4, 0}; // P, N, B, R, Q, K
