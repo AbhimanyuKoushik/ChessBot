@@ -11,7 +11,12 @@ constexpr int MATE_BOUND = 29000;  // Any score greater than 29000 is mate
 // Tracks data for the search tree
 struct SearchInfo {
   uint64_t nodes;
-  std::atomic<bool> stopped;  // Used for time management
+  std::atomic<bool> stopped;
+
+  // Used for time management
+  bool time_set;
+  long long start_time;
+  long long time_limit;
 };
 
 Move search_position(Board& board, SearchInfo& info, int maxDepth);

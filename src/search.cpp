@@ -2,10 +2,16 @@
 #include <evaluate.hpp>
 #include <movegen.hpp>
 #include <search.hpp>
+#include <uci.hpp>
 
 int negamax(Board& board, int depth, int alpha, int beta, int ply,
             SearchInfo& info) {
   if ((info.nodes & 2047) == 0) {
+    if (info.time_set) {
+      if (get_current_time_ms() - info.start_time > info.time_limit) {
+        info.stopped = true;
+      }
+    }
     if (info.stopped) return 0;
   }
   if (depth == 0) return evaluate(board);

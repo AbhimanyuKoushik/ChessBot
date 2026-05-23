@@ -1,9 +1,17 @@
+#include <atomic>
+#include <chrono>
 #include <iostream>
 #include <movegen.hpp>
 #include <sstream>
 #include <string>
 #include <thread>
 #include <uci.hpp>
+
+long long get_current_time_ms() {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::system_clock::now().time_since_epoch())
+      .count();
+}
 
 void uci_loop(Board& board, SearchInfo& info) {
   std::string line;
@@ -28,17 +36,40 @@ void uci_loop(Board& board, SearchInfo& info) {
     else if (token == "go") {
       info.stopped = false;
       info.nodes = 0;
+      info.time_set = false;
+
+      int time = -1, inc = 0;
+      int depth = 64;
+
+      std::string arg;
+      while (iss >> arg) {
+        if (arg == "wtime" && board.get_side_to_move() == WHITE) {
+          iss >> time;
+        } else if (arg == "btime" && board.get_side_to_move() == BLACK) {
+          iss >> time;
+        } else if (arg == "winc" && board.get_side_to_move() == WHITE) {
+          iss >> inc;
+        } else if (arg == "binc" && board.get_side_to_move() == BLACK) {
+          iss >> inc;
+        } else if (arg == "movetime") {
+          iss >> time;
+        } else if (arg == "depth") {
+          iss >> depth;
+        }
+      }
+
+      if (time != -1) {
+        info.time_set = true;
+        info.time_limit = (time / 40) + (inc / 2);
+        info.start_time = get_current_time_ms();
+
+        if (info.time_limit > time - 50) {
+          info.time_limit = time - 50;
+        }
+      }
 
       if (search_thread.joinable()) {
         search_thread.join();
-      }
-
-      int depth = 5;
-      std::string arg;
-      while (iss >> arg) {
-        if (arg == "depth" && iss >> arg) {
-          depth = std::stoi(arg);
-        }
       }
 
       search_thread =
