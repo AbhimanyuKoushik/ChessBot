@@ -9,3 +9,4 @@ bool test_movedef();
 void test_board();
 void test_fen_util();
 bool test_performance();
+bool test_search();

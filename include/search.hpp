@@ -1,0 +1,19 @@
+#pragma once
+
+#include <atomic>
+#include <board.hpp>
+
+// Limits to prevent overflow
+constexpr int INFINITY_SCORE = 32000;
+constexpr int MATE_SCORE = 30000;
+constexpr int MATE_BOUND = 29000;  // Any score greater than 29000 is mate
+
+// Tracks data for the search tree
+struct SearchInfo {
+  uint64_t nodes;
+  std::atomic<bool> stopped;  // Used for time management
+};
+
+Move search_position(Board& board, SearchInfo& info, int depth);
+
+int negamax(Board& board, int depth, int alpha, int beta, SearchInfo& info);

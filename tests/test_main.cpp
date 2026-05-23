@@ -51,6 +51,13 @@ int main(int argc, char* argv[]) {
     }
   }
 
+  if (target == "all" || target == "search") {
+    if (!test_search()) {
+      std::cout << "[FAIL] Search Test";
+      failed_tests++;
+    }
+  }
+
   if (failed_tests == 0)
     return 0;
   else
