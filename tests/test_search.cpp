@@ -8,19 +8,6 @@ struct SearchTest {
   std::string expected_move;  // in "e1e8" format
 };
 
-std::string move_to_string(Move move) {
-  int source_square = get_move_source_sq(move);
-  int target_square = get_move_target_sq(move);
-
-  std::string move_string;
-  move_string += static_cast<char>('a' + (source_square % 8));
-  move_string += static_cast<char>('1' + (7 - (source_square / 8)));
-  move_string += static_cast<char>('a' + (target_square % 8));
-  move_string += static_cast<char>('1' + (7 - (target_square / 8)));
-
-  return move_string;
-}
-
 bool test_search() {
   Board board;
   SearchInfo info;

@@ -14,6 +14,7 @@ struct SearchInfo {
   std::atomic<bool> stopped;  // Used for time management
 };
 
-Move search_position(Board& board, SearchInfo& info, int depth);
+Move search_position(Board& board, SearchInfo& info, int maxDepth);
 
-int negamax(Board& board, int depth, int alpha, int beta, SearchInfo& info);
+int negamax(Board& board, int depth, int alpha, int beta, int ply,
+            SearchInfo& info);

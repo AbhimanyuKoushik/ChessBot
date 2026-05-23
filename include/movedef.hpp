@@ -40,4 +40,6 @@ inline constexpr Move encode_move(Square source_sq, Square target_sq,
 
 void print_move(Move mv);
 
+std::string move_to_string(Move move);
+
 #include <details/movedef_inline.inl>

@@ -4,6 +4,48 @@
 #include <string>
 #include <types.hpp>
 
+std::string move_to_string(Move move) {
+  int source_square = get_move_source_sq(move);
+  int target_square = get_move_target_sq(move);
+
+  std::string move_string;
+  move_string += static_cast<char>('a' + (source_square % 8));
+  move_string += static_cast<char>('1' + (7 - (source_square / 8)));
+  move_string += static_cast<char>('a' + (target_square % 8));
+  move_string += static_cast<char>('1' + (7 - (target_square / 8)));
+
+  MoveFlag flag = get_move_flag(move);
+  switch (flag) {
+    case QUEEN_PROM:
+      move_string += "q";
+      break;
+    case ROOK_PROM:
+      move_string += "r";
+      break;
+    case BISHOP_PROM:
+      move_string += "b";
+      break;
+    case KNIGHT_PROM:
+      move_string += "n";
+      break;
+    case CAP_QUEEN_PROM:
+      move_string += "q";
+      break;
+    case CAP_ROOK_PROM:
+      move_string += "r";
+      break;
+    case CAP_BISHOP_PROM:
+      move_string += "b";
+      break;
+    case CAP_KNIGHT_PROM:
+      move_string += "n";
+      break;
+    default:
+      break;
+  }
+  return move_string;
+}
+
 void print_move(Move mv) {
   Square source_sq = get_move_source_sq(mv);
   Square target_sq = get_move_target_sq(mv);
