@@ -3,6 +3,8 @@
 #include "uci.hpp"
 
 int main() {
+  setbuf(stdout, NULL);
+
   // Instantiate the core state objects
   Board board;
   SearchInfo info;
