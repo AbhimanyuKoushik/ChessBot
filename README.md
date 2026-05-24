@@ -37,7 +37,7 @@ The build process is automated via a shell script. From the project root, run:
 chmod +x ./scripts/build.sh
 ./scripts/build.sh
 ```
-Upon successful Compilation the executable will be located at [Link Text](/build/bin/ChessEngine).
+Upon successful compilation the executable will be located at /build/bin/ChessEngine.
 
 ## Usage
-The engine follows the standard UCI protocol. To use it, simply load the [Link Text](/build/bin/ChessEngine). binary into any UCI-compatible chess GUI, such as Cute Chess or Arena.
+The engine follows the standard UCI protocol. To use it, simply load the /build/bin/ChessEngine binary into any UCI-compatible chess GUI, such as Cute Chess or Arena.
