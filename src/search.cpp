@@ -217,11 +217,12 @@ Move search_position(Board& board, SearchInfo& info, int maxDepth) {
       legal_moves++;
       if (legal_moves == 1) current_best_move = move;
       score = -negamax(board, current_depth - 1, -beta, -alpha, 0, info);
+      board.undo_move(move);
+      if (info.stopped) break;
       if (score > alpha) {
         alpha = score;
         current_best_move = move;
       }
-      if (info.stopped) break;
     }
 
     if (info.stopped) break;
