@@ -4,6 +4,73 @@
 #include <search.hpp>
 #include <uci.hpp>
 
+int quiescene(Board& board, int alpha, int beta, int ply, SearchInfo& info) {
+  // base case and hatch
+  if ((info.nodes & 2047) == 0) {
+    if (info.time_set) {
+      if (get_current_time_ms() - info.start_time > info.time_limit) {
+        info.stopped = true;
+      }
+    }
+    if (info.stopped) return 0;
+  }
+
+  info.nodes++;
+
+  int standard_eval_result = evaluate(board);
+
+  if (standard_eval_result >= beta) {
+    return beta;
+  }
+
+  if (alpha < standard_eval_result) {
+    alpha = standard_eval_result;
+  }
+
+  MoveList movelist;
+  Color opp_side = (board.get_side_to_move() == WHITE ? BLACK : WHITE);
+  Bitboard target_mask = board.get_side_occupancy(opp_side);
+  Square enpass_sq = board.get_enpassent_sq();
+
+  if (enpass_sq != NB_SQ) {
+    target_mask |= (1 << enpass_sq);
+  }
+
+  uint64_t last_rank, pawn_pushes;
+  if (opp_side == WHITE) {
+    pawn_pushes = board.get_piece_bitboard(W_PAWN) << 8;
+    last_rank = pawn_pushes & 0xFF'00'00'00'00'00'00'00;
+  } else {
+    pawn_pushes = board.get_piece_bitboard(B_PAWN) << 8;
+    last_rank = pawn_pushes & 0x00'00'00'00'00'00'00'FF;
+  }
+
+  target_mask |= last_rank;
+
+  // Only generates promotion and capture moves
+  generate_pseudo_legal_moves(board, movelist, target_mask);
+
+  for (Move move : movelist) {
+    board.make_move(move);
+    if (!board.is_position_legal()) {
+      board.undo_move(move);
+      continue;
+    }
+
+    int score = -quiescene(board, -beta, -alpha, ply + 1, info);
+
+    board.undo_move(move);
+
+    if (score >= beta) {
+      return beta;
+    } else if (score > alpha) {
+      alpha = score;
+    }
+  }
+
+  return alpha;
+}
+
 int negamax(Board& board, int depth, int alpha, int beta, int ply,
             SearchInfo& info) {
   // base case and hatch
@@ -15,7 +82,7 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply,
     }
     if (info.stopped) return 0;
   }
-  if (depth == 0) return evaluate(board);
+  if (depth == 0) return quiescene(board, alpha, beta, ply, info);
 
   // querying the table
   TranspositionTableEntry entry = info.tt->read(board.get_current_hash());

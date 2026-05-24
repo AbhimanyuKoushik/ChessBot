@@ -13,6 +13,10 @@ bool test_search() {
   SearchInfo info;
   info.stopped = false;
 
+  TranspositionTable entry_table = TranspositionTable(16);
+  info.tt = &entry_table;
+  info.time_set = false;
+
   std::vector<SearchTest> tests = {
       // Test 1: Mate in 2 (White to move)
       {"q5nr/P7/Bpk2b2/1Np2Qp1/8/4P3/1PP2PKp/R1Br4 w - - 0 31", 4, "f5e6"},
@@ -30,6 +34,7 @@ bool test_search() {
   for (size_t i = 0; i < tests.size(); i++) {
     board.LoadFEN(tests[i].fen_string);
     info.nodes = 0;
+    info.tt->clear();
 
     Move best_move = search_position(board, info, tests[i].depth);
 
