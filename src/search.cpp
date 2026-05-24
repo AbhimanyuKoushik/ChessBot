@@ -106,6 +106,17 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply,
     }
   }
 
+  // Check extension
+  int extension = 0;
+  Piece our_king = (board.get_side_to_move() == WHITE ? W_KING : B_KING);
+  Color opp_side = (board.get_side_to_move() == WHITE ? BLACK : WHITE);
+  Square our_king_sq =
+      static_cast<Square>(get_lsb_index(board.get_piece_bitboard(our_king)));
+  bool is_king_attacked = board.is_square_attacked(our_king_sq, opp_side);
+  if (is_king_attacked && (ply < 64)) {
+    extension = 1;
+  }
+
   int original_alpha = alpha;
   MoveList movelist;
   Move best_move = 0;
@@ -123,7 +134,7 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply,
     for (uint8_t j = i; j < movelist.count; j++) {
       if (movelist.scores[j] > best_score) {
         best_score = movelist.scores[j];
-        best_move = movelist.moves[j];
+        best_index = j;
       }
     }
 
@@ -138,7 +149,8 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply,
       board.undo_move(move);
     } else {
       number_of_legalmoves++;
-      int score = -negamax(board, depth - 1, -beta, -alpha, ply + 1, info);
+      int score =
+          -negamax(board, depth - 1 + extension, -beta, -alpha, ply + 1, info);
       board.undo_move(move);
 
       if (score >= beta) {
@@ -159,13 +171,6 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply,
   }
 
   if (number_of_legalmoves == 0) {
-    Color our_side = board.get_side_to_move();
-    Color opp_side = (our_side == WHITE ? BLACK : WHITE);
-    Piece our_king = (our_side == WHITE ? W_KING : B_KING);
-    Square our_king_square =
-        static_cast<Square>(get_lsb_index(board.get_piece_bitboard(our_king)));
-
-    bool is_king_attacked = board.is_square_attacked(our_king_square, opp_side);
     if (is_king_attacked)
       return -MATE_SCORE + ply;
     else
@@ -198,20 +203,24 @@ Move search_position(Board& board, SearchInfo& info, int maxDepth) {
     int alpha = -INFINITY_SCORE;
     int beta = INFINITY_SCORE;
     int score;
+    uint8_t legal_moves = 0;
 
     MoveList movelist;
 
     generate_pseudo_legal_moves(board, movelist, ~0ULL);
     for (Move move : movelist) {
       board.make_move(move);
-      if (board.is_position_legal()) {
-        score = -negamax(board, current_depth - 1, -beta, -alpha, 0, info);
-        if (score > alpha) {
-          alpha = score;
-          current_best_move = move;
-        }
+      if (!board.is_position_legal()) {
+        board.undo_move(move);
+        continue;
       }
-      board.undo_move(move);
+      legal_moves++;
+      if (legal_moves == 1) current_best_move = move;
+      score = -negamax(board, current_depth - 1, -beta, -alpha, 0, info);
+      if (score > alpha) {
+        alpha = score;
+        current_best_move = move;
+      }
       if (info.stopped) break;
     }
 
