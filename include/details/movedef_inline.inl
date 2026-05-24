@@ -20,3 +20,13 @@ inline constexpr Move encode_move(Square source_sq, Square target_sq,
                                   MoveFlag flag) {
   return static_cast<Move>((flag << 12) | (target_sq << 6) | source_sq);
 }
+
+inline constexpr bool is_move_capture(Move mv) {
+  MoveFlag flag = get_move_flag(mv);
+  if ((flag == CAPTURE) || (flag == CAP_QUEEN_PROM) ||
+      (flag == CAP_ROOK_PROM) || (flag == CAP_BISHOP_PROM) ||
+      (flag == CAP_KNIGHT_PROM)) {
+    return true;
+  } else
+    return false;
+}

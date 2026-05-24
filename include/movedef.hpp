@@ -38,6 +38,8 @@ inline constexpr MoveFlag get_move_flag(Move mv);
 inline constexpr Move encode_move(Square source_sq, Square target_sq,
                                   MoveFlag flag);
 
+inline constexpr bool is_move_capture(Move mv);
+
 void print_move(Move mv);
 
 std::string move_to_string(Move move);

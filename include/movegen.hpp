@@ -2,10 +2,12 @@
 
 #include <array>
 #include <board.hpp>
+#include <iostream>
 #include <movedef.hpp>
 
 struct MoveList {
   std::array<Move, 256> moves;
+  std::array<int, 256> scores;
   uint8_t count = 0;
 
   inline void push_back(Move mv);

@@ -33,16 +33,16 @@ int quiescene(Board& board, int alpha, int beta, int ply, SearchInfo& info) {
   Square enpass_sq = board.get_enpassent_sq();
 
   if (enpass_sq != NB_SQ) {
-    target_mask |= (1 << enpass_sq);
+    target_mask |= (1ULL << enpass_sq);
   }
 
   uint64_t last_rank, pawn_pushes;
   if (opp_side == WHITE) {
     pawn_pushes = board.get_piece_bitboard(W_PAWN) << 8;
-    last_rank = pawn_pushes & 0xFF'00'00'00'00'00'00'00;
+    last_rank = pawn_pushes & 0x00'00'00'00'00'00'00'FF;
   } else {
     pawn_pushes = board.get_piece_bitboard(B_PAWN) << 8;
-    last_rank = pawn_pushes & 0x00'00'00'00'00'00'00'FF;
+    last_rank = pawn_pushes & 0xFF'00'00'00'00'00'00'00;
   }
 
   target_mask |= last_rank;
@@ -86,7 +86,9 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply,
 
   // querying the table
   TranspositionTableEntry entry = info.tt->read(board.get_current_hash());
+  Move tt_move = 0;
   if (entry.flag != TT_NULL) {
+    tt_move = entry.move;
     if (entry.depth >= depth) {
       int score = entry.score;
       if (score > MATE_SCORE - 100)
@@ -109,9 +111,27 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply,
   Move best_move = 0;
 
   generate_pseudo_legal_moves(board, movelist, ~0ULL);
+  // scores move, tt_moves have highest scores
+  score_moves(board, movelist, tt_move);
   int number_of_legalmoves = 0;
 
-  for (Move move : movelist) {
+  // move ordering based on scores
+  for (uint8_t i = 0; i < movelist.count; i++) {
+    int best_score = -99999;
+    int best_index = i;
+
+    for (uint8_t j = i; j < movelist.count; j++) {
+      if (movelist.scores[j] > best_score) {
+        best_score = movelist.scores[j];
+        best_move = movelist.moves[j];
+      }
+    }
+
+    std::swap(movelist.moves[i], movelist.moves[best_index]);
+    std::swap(movelist.scores[i], movelist.scores[best_index]);
+
+    Move move = movelist.moves[i];
+
     board.make_move(move);
     info.nodes++;
     if (!board.is_position_legal()) {
@@ -175,17 +195,19 @@ Move search_position(Board& board, SearchInfo& info, int maxDepth) {
   // Iterative deepening loop
   for (int current_depth = 1; current_depth <= maxDepth; current_depth++) {
     Move current_best_move = 0;
-    int best_score = -INFINITY_SCORE, score;
+    int alpha = -INFINITY_SCORE;
+    int beta = INFINITY_SCORE;
+    int score;
+
     MoveList movelist;
 
     generate_pseudo_legal_moves(board, movelist, ~0ULL);
     for (Move move : movelist) {
       board.make_move(move);
       if (board.is_position_legal()) {
-        score = -negamax(board, current_depth - 1, -INFINITY_SCORE,
-                         INFINITY_SCORE, 0, info);
-        if (score >= best_score) {
-          best_score = score;
+        score = -negamax(board, current_depth - 1, -beta, -alpha, 0, info);
+        if (score > alpha) {
+          alpha = score;
           current_best_move = move;
         }
       }

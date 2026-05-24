@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <board.hpp>
+#include <movegen.hpp>
 #include <transposition_table.hpp>
 
 // Limits to prevent overflow
@@ -27,3 +28,7 @@ Move search_position(Board& board, SearchInfo& info, int maxDepth);
 
 int negamax(Board& board, int depth, int alpha, int beta, int ply,
             SearchInfo& info);
+
+inline void score_moves(const Board& board, MoveList& movelist, Move tt_move);
+
+#include <details/search_inline.inl>
