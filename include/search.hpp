@@ -22,6 +22,9 @@ struct SearchInfo {
 
   // transposition table pointer
   TranspositionTable* tt;
+
+  // History table for move ordering
+  std::array<std::array<int, NB_SQ>, NB_PIECES> historyTable = {{0}};
 };
 
 Move search_position(Board& board, SearchInfo& info, int maxDepth);
@@ -29,6 +32,7 @@ Move search_position(Board& board, SearchInfo& info, int maxDepth);
 int negamax(Board& board, int depth, int alpha, int beta, int ply,
             SearchInfo& info);
 
-inline void score_moves(const Board& board, MoveList& movelist, Move tt_move);
+inline void score_moves(const Board& board, MoveList& movelist, Move tt_move,
+                        SearchInfo& info);
 
 #include <details/search_inline.inl>

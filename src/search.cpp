@@ -1,5 +1,6 @@
 #include <board.hpp>
 #include <evaluate.hpp>
+#include <movedef.hpp>
 #include <movegen.hpp>
 #include <search.hpp>
 #include <uci.hpp>
@@ -18,6 +19,9 @@ int quiescene(Board& board, int alpha, int beta, int ply, SearchInfo& info) {
   info.nodes++;
 
   int standard_eval_result = evaluate(board);
+
+  // Hard limit
+  if (ply >= 64) return standard_eval_result;
 
   if (standard_eval_result >= beta) {
     return beta;
@@ -123,7 +127,7 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply,
 
   generate_pseudo_legal_moves(board, movelist, ~0ULL);
   // scores move, tt_moves have highest scores
-  score_moves(board, movelist, tt_move);
+  score_moves(board, movelist, tt_move, info);
   int number_of_legalmoves = 0;
 
   // move ordering based on scores
@@ -160,6 +164,21 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply,
         else if (write_score < -MATE_SCORE + 100)
           write_score -= ply;
 
+        if (!is_move_capture(move)) {
+          int bonus = depth * depth;
+          Square target_sq = get_move_target_sq(move);
+          Piece piece_moving =
+              board.get_piece_at_square(get_move_source_sq(move));
+          info.historyTable[piece_moving][target_sq] += bonus;
+
+          if (info.historyTable[piece_moving][target_sq] > 16384) {
+            for (uint8_t piece = W_PAWN; piece <= B_KING; piece++) {
+              for (uint8_t square = 0; square < 64; square++) {
+                info.historyTable[piece][square] >>= 1;
+              }
+            }
+          }
+        }
         info.tt->write(board.get_current_hash(), write_score, TT_BETA, depth,
                        move);
         return beta;
