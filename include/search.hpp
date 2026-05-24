@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <board.hpp>
+#include <transposition_table.hpp>
 
 // Limits to prevent overflow
 constexpr int INFINITY_SCORE = 32000;
@@ -17,6 +18,9 @@ struct SearchInfo {
   bool time_set;
   long long start_time;
   long long time_limit;
+
+  // transposition table pointer
+  TranspositionTable* tt;
 };
 
 Move search_position(Board& board, SearchInfo& info, int maxDepth);

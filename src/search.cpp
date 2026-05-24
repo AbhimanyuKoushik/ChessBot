@@ -6,6 +6,7 @@
 
 int negamax(Board& board, int depth, int alpha, int beta, int ply,
             SearchInfo& info) {
+  // base case and hatch
   if ((info.nodes & 2047) == 0) {
     if (info.time_set) {
       if (get_current_time_ms() - info.start_time > info.time_limit) {
@@ -15,9 +16,34 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply,
     if (info.stopped) return 0;
   }
   if (depth == 0) return evaluate(board);
+
+  // querying the table
+  TranspositionTableEntry entry = info.tt->read(board.get_current_hash());
+  if (entry.flag != TT_NULL) {
+    if (entry.depth >= depth) {
+      int score = entry.score;
+      if (score > MATE_SCORE - 100)
+        score -= ply;
+      else if (score < -MATE_SCORE + 100)
+        score += ply;
+
+      if (entry.flag == TT_EXACT) {
+        return score;  // Return adjusted score
+      } else if (entry.flag == TT_BETA) {
+        if (score >= beta) return beta;
+      } else if (entry.flag == TT_ALPHA) {
+        if (score <= alpha) return alpha;
+      }
+    }
+  }
+
+  int original_alpha = alpha;
   MoveList movelist;
+  Move best_move = 0;
+
   generate_pseudo_legal_moves(board, movelist, ~0ULL);
   int number_of_legalmoves = 0;
+
   for (Move move : movelist) {
     board.make_move(move);
     info.nodes++;
@@ -27,12 +53,24 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply,
       number_of_legalmoves++;
       int score = -negamax(board, depth - 1, -beta, -alpha, ply + 1, info);
       board.undo_move(move);
-      if (score >= beta)
+
+      if (score >= beta) {
+        int write_score = beta;
+        if (write_score > MATE_SCORE - 100)
+          write_score += ply;
+        else if (write_score < -MATE_SCORE + 100)
+          write_score -= ply;
+
+        info.tt->write(board.get_current_hash(), write_score, TT_BETA, depth,
+                       move);
         return beta;
-      else if (score > alpha)
+      } else if (score > alpha) {
         alpha = score;
+        best_move = move;
+      }
     }
   }
+
   if (number_of_legalmoves == 0) {
     Color our_side = board.get_side_to_move();
     Color opp_side = (our_side == WHITE ? BLACK : WHITE);
@@ -46,6 +84,21 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply,
     else
       return 0;
   }
+
+  int write_score = alpha;
+  if (write_score > MATE_SCORE - 100)
+    write_score += ply;
+  else if (write_score < -MATE_SCORE + 100)
+    write_score -= ply;
+
+  if (alpha > original_alpha) {
+    info.tt->write(board.get_current_hash(), write_score, TT_EXACT, depth,
+                   best_move);
+  } else {
+    // 0 is safely passed because best_move was initialized to 0
+    info.tt->write(board.get_current_hash(), write_score, TT_ALPHA, depth, 0);
+  }
+
   return alpha;
 }
 
